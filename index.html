@@ -21,6 +21,9 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
 .restart-btn:hover{background:#66bb6a}
 .hint{font-size:12px;color:rgba(255,255,255,0.4);margin-top:10px}
 </style>
+<!-- ZzFXMicro v1.3.2 — Zuper Zmall Zound Zynth by Frank Force, MIT -->
+<script>'use strict';let zzfxV=.3,zzfxX=new AudioContext,zzfx=(p=1,k=.05,b=220,e=0,r=0,t=.1,q=0,D=1,u=0,y=0,v=0,z=0,l=0,E=0,A=0,F=0,c=0,w=1,m=0,B=0,N=0)=>{let M=Math,d=2*M.PI,R=44100,G=u*=500*d/R/R,C=b*=(1-k+2*k*M.random(k=[]))*d/R,g=0,H=0,a=0,n=1,I=0,J=0,f=0,h=N<0?-1:1,x=d*h*N*2/R,L=M.cos(x),Z=M.sin,K=Z(x)/4,O=1+K,X=-2*L/O,Y=(1-K)/O,P=(1+h*L)/2/O,Q=-(h+L)/O,S=P,T=0,U=0,V=0,W=0;e=R*e+9;m*=R;r*=R;t*=R;c*=R;y*=500*d/R**3;A*=d/R;v*=d/R;z*=R;l=R*l|0;p*=zzfxV;for(h=e+m+r+t+c|0;a<h;k[a++]=f*p)++J%(100*F|0)||(f=q?1<q?2<q?3<q?4<q?(g/d%1<D/2)*2-1:Z(g**3):M.max(M.min(M.tan(g),1),-1):1-(2*g/d%2+2)%2:1-4*M.abs(M.round(g/d)-g/d):Z(g),f=(l?1-B+B*Z(d*a/l):1)*(4<q?f:(f<0?-1:1)*M.abs(f)**D)*(a<e?a/e:a<e+m?1-(a-e)/m*(1-w):a<e+m+r?w:a<h-c?(h-a-c)/t*w:0),f=c?f/2+(c>a?0:(a<h-c?1:(h-a)/c)*k[a-c|0]/2/p):f,N?f=W=S*T+Q*(T=U)+P*(U=f)-Y*V-X*(V=W):0),x=(b+=u+=y)*M.cos(A*H++),g+=x+x*E*Z(a**5),n&&++n>z&&(b+=v,C+=v,n=0),!l||++I%l||(b=C,u=G,n=n||1);X=zzfxX,p=X.createBuffer(1,h,R);p.getChannelData(0).set(k);b=X.createBufferSource();b.buffer=p;b.connect(X.destination);b.start()}</script>
+
 </head>
 <body>
 <div class="game-wrapper">
@@ -37,6 +40,64 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
 <script>
 (function(){
   "use strict";
+
+  // ---------- Audio System ----------
+  let audioReady = false;
+  function initAudio() {
+    if (audioReady) return;
+    try { zzfxX.resume(); } catch(e) {}
+    audioReady = true;
+  }
+
+  const SFX = {
+    eat:     [.3,,925,.04,.3,.6,1,.3,,6.27,-184,.09,.17],
+    death:   [1.5,.8,270,,.1,,1,1.5,,,,,,,,.1,.01],
+    levelUp: [.3,,537,.02,.02,.22,1,1.59,-6.98,4.97],
+    bonus:   [.3,,167,.01,.03,.15,1,2.11,,,,,,,,.05],
+    menuBlip:[.2,,925,.01,.02,.05,1,.5,,,697,.02],
+  };
+  let sfxVol = 1.0;
+
+  function playSFX(name) {
+    if (!audioReady) initAudio();
+    const p = SFX[name];
+    if (!p) return;
+    const sv = zzfxV;
+    zzfxV = sfxVol * 0.3;
+    zzfx(...p);
+    zzfxV = sv;
+  }
+
+  // Simple BGM sequencer using ZzFXMicro
+  const BGM_MELODY = [
+    [523,.4],[659,.2],[784,.2],[659,.4],[784,.2],[1047,.6],
+    [784,.4],[659,.2],[523,.2],[587,.4],[659,.2],[523,.6],
+    [440,.4],[523,.2],[587,.2],[659,.4],[523,.4],[440,.8],
+    [392,.4],[440,.2],[523,.2],[587,.4],[659,.2],[392,.6],
+  ];
+  let bgmIdx = 0, bgmTimer = null, bgmPlaying = false, bgmVol = 0.06;
+
+  function scheduleBGMNote() {
+    if (!bgmPlaying || !game || !game.alive) return;
+    const [freq, dur] = BGM_MELODY[bgmIdx % BGM_MELODY.length];
+    const sv = zzfxV;
+    zzfxV = bgmVol;
+    zzfx(.08, 0, freq, .01, 0, dur*.5, 1, .5, 0, 0, 0, 0, 0, 0, 0, 0, 0, .5, 0, 0);
+    zzfxV = sv;
+    bgmIdx++;
+    bgmTimer = setTimeout(scheduleBGMNote, dur * 1000);
+  }
+
+  function startBGM() {
+    if (bgmPlaying || !audioReady) return;
+    bgmPlaying = true; bgmIdx = 0;
+    scheduleBGMNote();
+  }
+
+  function stopBGM() {
+    bgmPlaying = false;
+    if (bgmTimer) { clearTimeout(bgmTimer); bgmTimer = null; }
+  }
 
   // ---------- Const ----------
   const COLS = 30, ROWS = 20, CELL = 30;
@@ -383,6 +444,7 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
     return {
       level: lvl,
       rabbitsEaten: 0,
+      levelRabbitsEaten: 0,
       maze: m,
       snake: [{x:ss.x, y:ss.y}, {x:ss.x-1, y:ss.y}, {x:ss.x-2, y:ss.y}],
       dir: {dx:0, dy:0}, nextDir: {dx:0, dy:0},
@@ -637,8 +699,12 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
     const head = state.snake[0];
     const nh = { x: head.x + state.dir.dx, y: head.y + state.dir.dy };
 
-    // Bounds + wall (BED is impassable)
-    if (nh.x < 0 || nh.x >= COLS || nh.y < 0 || nh.y >= ROWS) return false;
+    // Wrap-around: teleport to opposite side when crossing boundary
+    // (wall_reverse random warp is handled in Task 3)
+    nh.x = ((nh.x % COLS) + COLS) % COLS;
+    nh.y = ((nh.y % ROWS) + ROWS) % ROWS;
+
+    // Wall collision (BED is impassable unless pass_through buff active)
     if (state.maze[nh.y][nh.x] === BED) return false;
 
     // Self collision
@@ -665,6 +731,8 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
           state.rabbits.splice(i, 1);
           state.score += 10;
           state.rabbitsEaten++;
+          state.levelRabbitsEaten++;
+          playSFX('eat');
           state.growPending++;
           ate = true;
 
@@ -686,6 +754,8 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
 
   function advanceLevel(state) {
     state.level++;
+    state.levelRabbitsEaten = 0;
+    playSFX('levelUp');
     // Generate new maze for new level
     const newMaze = generateLevel(state.level);
     state.maze = newMaze;
@@ -728,6 +798,7 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
     if (!game) return;
     if (!game.alive && (e.key === "Enter" || e.key === " " || e.key === "Space")) {
       e.preventDefault();
+      initAudio();
       startGame();
       return;
     }
@@ -745,7 +816,7 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
   }
 
   document.addEventListener("keydown", handleKeyDown);
-  document.getElementById("restart-btn").addEventListener("click", startGame);
+  document.getElementById("restart-btn").addEventListener("click", function(){ initAudio(); startGame(); });
 
   // ---------- Drawing ----------
   let animTime = 0;
@@ -897,18 +968,22 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
     ctx.fillStyle = "#81c784";
     ctx.font = "12px monospace";
     ctx.fillText("LVL " + game.level, sx + 130, sy + 2);
-    // Progress bar
-    const progress = (game.rabbitsEaten % RABBITS_PER_LEVEL) / RABBITS_PER_LEVEL;
-    ctx.fillStyle = "rgba(255,255,255,0.15)";
-    ctx.fillRect(sx + 130, sy + 18, 90, 8);
-    ctx.fillStyle = progress > 0 ? "#81c784" : "rgba(255,255,255,0.1)";
-    ctx.fillRect(sx + 130, sy + 18, Math.floor(90 * progress), 8);
-    ctx.strokeStyle = "rgba(255,255,255,0.3)";
-    ctx.strokeRect(sx + 130, sy + 18, 90, 8);
-    // Bunny count
+    // Rabbit eat progress: X / Y
     ctx.fillStyle = "#ffffff";
-    ctx.font = "11px monospace";
-    ctx.fillText("BUNNY " + game.rabbits.length, sx + 130, sy + 32);
+    ctx.font = "12px monospace";
+    ctx.fillText("EATEN " + game.levelRabbitsEaten + "/" + RABBITS_PER_LEVEL, sx + 120, sy + 20);
+    // Progress bar
+    const progress = game.levelRabbitsEaten / RABBITS_PER_LEVEL;
+    ctx.fillStyle = "rgba(255,255,255,0.15)";
+    ctx.fillRect(sx + 120, sy + 32, 96, 8);
+    ctx.fillStyle = progress > 0 ? "#81c784" : "rgba(255,255,255,0.1)";
+    ctx.fillRect(sx + 120, sy + 32, Math.floor(96 * progress), 8);
+    ctx.strokeStyle = "rgba(255,255,255,0.3)";
+    ctx.strokeRect(sx + 120, sy + 32, 96, 8);
+    // Bunny count
+    ctx.fillStyle = "rgba(255,255,255,0.6)";
+    ctx.font = "10px monospace";
+    ctx.fillText("BUNNY " + game.rabbits.length, sx + 120, sy + 46);
     // High score
     ctx.fillStyle = "rgba(255,255,255,0.5)";
     ctx.font = "11px monospace";
@@ -973,6 +1048,8 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
   function gameOver() {
     if (!game) return;
     game.alive = false;
+    stopBGM();
+    playSFX('death');
     if (game.score > game.highScore) {
       game.highScore = game.score;
       localStorage.setItem("crmz_hi", String(game.highScore));
@@ -1011,6 +1088,9 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
     spawnInitialRabbits(game);
     game.alive = true;
     game.lastTimestamp = 0;
+    initAudio();
+    stopBGM();
+    setTimeout(startBGM, 100);
     game.accumulator = 0;
     animTime = 0;
     particles = [];
@@ -1057,6 +1137,7 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
     if (game && game.alive) return; // already started by handleKeyDown
     e.preventDefault();
     document.removeEventListener("keydown", starter);
+    initAudio();
     startGame();
     const dirName = keyMap[e.key];
     if (dirName) {
