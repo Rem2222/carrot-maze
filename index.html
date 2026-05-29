@@ -392,7 +392,8 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
       highScore: Math.max(0, parseInt(localStorage.getItem("crmz_hi") || "0")),
       alive: false,
       accumulator: 0,
-      spawnTimer: 0
+      spawnTimer: 0,
+      eatenCarrots: new Set() // R3: track eaten carrots
     };
   }
 
@@ -512,6 +513,12 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
     let score = 0;
     if (bedKey === rabbit.prevBedKey) score -= 0.4;
     if (rabbits.some(r => r.bedKey === bedKey && r !== rabbit)) score -= 0.5;
+    // R2: carrot affinity — prefer cells with uneaten carrots
+    const [c, r] = bedKey.split(",").map(Number);
+    if ((r * 13 + c * 7) % 5 < 2) {
+      score += 0.35;
+      if (game && game.eatenCarrots && !game.eatenCarrots.has(bedKey)) score += 0.2;
+    }
     score += (Math.random() - 0.5) * 0.8;
     return score;
   }
@@ -591,6 +598,11 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
       r.carrotEatTimer -= dt;
       if (r.carrotEatTimer <= 0 && !r.eatingCarrot) {
         r.eatingCarrot = true;
+        // R3: mark carrot at current position as eaten
+        const [ec, er] = r.bedKey.split(",").map(Number);
+        if ((er * 13 + ec * 7) % 5 < 2) {
+          state.eatenCarrots.add(r.bedKey);
+        }
         r.carrotEatTimer = 800; // eat animation duration
       }
       if (r.eatingCarrot) {
@@ -684,6 +696,7 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
     state.nextDir = {dx:0, dy:0};
     state.growPending = 0;
     state.accumulator = 0;
+    state.eatenCarrots = new Set(); // R3: fresh carrots for new level
     // Rebuild bed graph for new maze
     buildBedGraphFromMaze(newMaze);
     // Move rabbits to random available BED positions
@@ -753,7 +766,8 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
             ctx.fillRect(x + 18, y + 6, 4, 4);
           }
           // Draw carrot on some beds (about 30% chance based on position)
-          if ((r * 13 + c * 7) % 5 < 2) {
+          // R3: skip eaten carrots
+          if ((r * 13 + c * 7) % 5 < 2 && !(game && game.eatenCarrots && game.eatenCarrots.has(c + "," + r))) {
             drawCarrot(x + CELL / 2, y + CELL / 2);
           }
         } else {
