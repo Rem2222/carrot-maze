@@ -10,1061 +10,864 @@ body{margin:0;padding:0;background:radial-gradient(ellipse at center,#1e2a1e 0%,
 body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.035)2px,rgba(0,0,0,0.035)4px);pointer-events:none;z-index:100}
 .game-wrapper{position:relative;border:3px solid #8d6e4c;border-radius:8px;box-shadow:0 0 40px rgba(141,110,76,0.3),inset 0 0 20px rgba(0,0,0,0.5);background:#5d4037}
 canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-rendering:crisp-edges}
-#game-over{position:absolute;inset:0;background:rgba(0,0,0,0.78);display:none;align-items:center;justify-content:center;flex-direction:column;z-index:10;animation:fadeIn .4s ease-out;border-radius:5px}
-#game-over.visible{display:flex}
+.overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;z-index:10;animation:fadeIn .3s ease-out;border-radius:5px}
+.overlay.visible{display:flex}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+#main-menu{background:rgba(10,15,10,0.92)}
+.menu-title{font-family:'Courier New',monospace;font-size:40px;color:#4caf50;text-shadow:0 0 30px rgba(76,175,80,0.6);margin:0 0 4px;letter-spacing:4px}
+.menu-subtitle{font-size:14px;color:#a5d6a7;margin:0 0 24px;letter-spacing:6px}
+.menu-start{font-family:'Courier New',monospace;font-size:20px;color:#ffd54f;animation:blink 1.5s ease-in-out infinite;margin:0 0 20px;letter-spacing:2px}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+.menu-hint{font-size:12px;color:rgba(255,255,255,0.4);margin:4px 0}
+.menu-hint kbd{color:#81c784;border:1px solid rgba(129,199,132,0.4);border-radius:3px;padding:1px 5px;font-family:'Courier New',monospace}
+.panel{background:rgba(10,15,10,0.94);border:2px solid #8d6e4c;border-radius:6px;padding:24px 32px;text-align:center;min-width:360px;max-width:480px}
+.panel-title{font-family:'Courier New',monospace;font-size:28px;color:#ffd54f;margin:0 0 16px;letter-spacing:3px}
+.panel-text{font-size:14px;color:#a5d6a7;margin:4px 0;line-height:1.5}
+.menu-btn{font-family:'Courier New',monospace;font-size:16px;padding:8px 24px;margin:4px 0;background:#4caf50;color:#fff;border:2px solid #66bb6a;border-radius:4px;cursor:pointer;transition:background .15s,transform .1s;letter-spacing:1px;width:200px}
+.menu-btn:hover{background:#66bb6a;transform:scale(1.03)}
+.menu-btn:active{transform:scale(0.97)}
+.menu-btn.secondary{background:transparent;border-color:#8d6e4c;color:#a5d6a7}
+.menu-btn.secondary:hover{background:rgba(141,110,76,0.2);color:#fff}
+.menu-btn.danger{background:#c62828;border-color:#ef5350}
+.menu-btn.danger:hover{background:#ef5350}
+.menu-btn.wide{width:260px}
+.setting-row{display:flex;align-items:center;justify-content:space-between;margin:8px 0;min-width:320px}
+.setting-label{font-size:14px;color:#a5d6a7;text-align:left;flex:1}
+.setting-value{font-size:14px;color:#ffd54f;margin:0 8px;min-width:32px;text-align:center}
+.setting-slider{-webkit-appearance:none;width:120px;height:6px;background:#3d5a2e;border-radius:3px;outline:none;cursor:pointer}
+.setting-slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;background:#4caf50;border-radius:50%;cursor:pointer;border:2px solid #81c784}
+.setting-btn{font-family:'Courier New',monospace;font-size:13px;padding:4px 12px;background:transparent;color:#81c784;border:1px solid #4a7c3f;border-radius:3px;cursor:pointer;transition:background .15s}
+.setting-btn:hover{background:rgba(76,175,80,0.2)}
+.setting-btn.active{background:#4caf50;color:#fff;border-color:#66bb6a}
+.hof-table{width:100%;border-collapse:collapse;margin:8px 0;font-size:13px}
+.hof-table th{color:#ffd54f;border-bottom:2px solid #8d6e4c;padding:4px 8px;letter-spacing:1px}
+.hof-table td{color:#a5d6a7;padding:3px 8px;border-bottom:1px solid rgba(141,110,76,0.3)}
+.hof-table tr.current{background:rgba(255,213,79,0.1)}
+.hof-table tr.current td{color:#ffd54f}
+.hof-empty{color:rgba(255,255,255,0.3);font-size:13px;margin:12px 0}
+.hof-input-row{display:flex;align-items:center;justify-content:center;gap:8px;margin:8px 0}
+.hof-name-input{font-family:'Courier New',monospace;font-size:16px;width:60px;text-align:center;padding:4px 6px;background:#1b3a0f;color:#ffd54f;border:2px solid #4caf50;border-radius:3px;outline:none;text-transform:uppercase;letter-spacing:2px}
+.hof-name-input:focus{border-color:#81c784;box-shadow:0 0 8px rgba(76,175,80,0.4)}
+.hof-rank{display:inline-block;width:20px;text-align:right;margin-right:6px;color:#81c784}
+#continue-menu{background:rgba(10,15,10,0.9)}
+.hearts-display{font-size:32px;letter-spacing:6px;margin:8px 0}
+#game-over{background:rgba(0,0,0,0.78);animation:fadeIn .4s ease-out}
 .game-over-title{font-family:'Courier New',monospace;font-size:36px;color:#ff5252;text-shadow:0 0 20px rgba(255,82,82,0.5);margin:0 0 8px;letter-spacing:4px}
 .final-score{font-size:22px;color:#ffd54f;margin:4px 0}
-.high-score{font-size:16px;color:#a5d6a7;margin:4px 0 16px}
+.high-score{font-size:16px;color:#a5d6a7;margin:4px 0 8px}
 .level-display{font-size:14px;color:#81c784;margin:2px 0}
 .restart-btn{font-family:'Courier New',monospace;font-size:18px;padding:10px 32px;background:#4caf50;color:#fff;border:2px solid #66bb6a;border-radius:4px;cursor:pointer;transition:background .15s;letter-spacing:2px}
 .restart-btn:hover{background:#66bb6a}
-.hint{font-size:12px;color:rgba(255,255,255,0.4);margin-top:10px}
+.new-hs{color:#ffab00;font-size:16px;margin:8px 0;animation:blink .8s ease-in-out infinite}
+.pause-reason{font-size:12px;color:rgba(255,255,255,0.35);margin-top:12px}
 </style>
+<script>'use strict';let zzfxV=.3,zzfxX=new AudioContext,zzfx=(p=1,k=.05,b=220,e=0,r=0,t=.1,q=0,D=1,u=0,y=0,v=0,z=0,l=0,E=0,A=0,F=0,c=0,w=1,m=0,B=0,N=0)=>{let M=Math,d=2*M.PI,R=44100,G=u*=500*d/R/R,C=b*=(1-k+2*k*M.random(k=[]))*d/R,g=0,H=0,a=0,n=1,I=0,J=0,f=0,h=N<0?-1:1,x=d*h*N*2/R,L=M.cos(x),Z=M.sin,K=Z(x)/4,O=1+K,X=-2*L/O,Y=(1-K)/O,P=(1+h*L)/2/O,Q=-(h+L)/O,S=P,T=0,U=0,V=0,W=0;e=R*e+9;m*=R;r*=R;t*=R;c*=R;y*=500*d/R**3;A*=d/R;v*=d/R;z*=R;l=R*l|0;p*=zzfxV;for(h=e+m+r+t+c|0;a<h;k[a++]=f*p)++J%(100*F|0)||(f=q?1<q?2<q?3<q?4<q?(g/d%1<D/2)*2-1:Z(g**3):M.max(M.min(M.tan(g),1),-1):1-(2*g/d%2+2)%2:1-4*M.abs(M.round(g/d)-g/d):Z(g),f=(l?1-B+B*Z(d*a/l):1)*(4<q?f:(f<0?-1:1)*M.abs(f)**D)*(a<e?a/e:a<e+m?1-(a-e)/m*(1-w):a<e+m+r?w:a<h-c?(h-a-c)/t*w:0),f=c?f/2+(c>a?0:(a<h-c?1:(h-a)/c)*k[a-c|0]/2/p):f,N?f=W=S*T+Q*(T=U)+P*(U=f)-Y*V-X*(V=W):0),x=(b+=u+=y)*M.cos(A*H++),g+=x+x*E*Z(a**5),n&&++n>z&&(b+=v,C+=v,n=0),!l||++I%l||(b=C,u=G,n=n||1);X=zzfxX,p=X.createBuffer(1,h,R);p.getChannelData(0).set(k);b=X.createBufferSource();b.buffer=p;b.connect(X.destination);b.start()}</script>
 </head>
 <body>
 <div class="game-wrapper">
 <canvas id="game" width="900" height="600"></canvas>
-<div id="game-over">
-<div class="game-over-title">GAME OVER</div>
-<div class="final-score">Score: <span id="final-score">0</span></div>
-<div class="level-display">Level: <span id="final-level">1</span></div>
-<div class="high-score">Best: <span id="high-score">0</span></div>
-<button class="restart-btn" id="restart-btn">PLAY AGAIN</button>
-<div class="hint">Press ENTER or SPACE to restart</div>
+<div id="main-menu" class="overlay visible">
+  <div class="menu-title">CARROT MAZE</div>
+  <div class="menu-subtitle">PYTHON vs RABBITS</div>
+  <div class="menu-start">Press ENTER to start</div>
+  <div class="menu-hint">Press <kbd>S</kbd> for Settings</div>
+  <div class="menu-hint">Press <kbd>H</kbd> for Hall of Fame</div>
+  <div class="menu-hint">Press <kbd>I</kbd> for Instructions</div>
+</div>
+<div id="pause-menu" class="overlay">
+  <div class="panel">
+    <div class="panel-title">PAUSED</div>
+    <button class="menu-btn" id="btn-resume">RESUME</button>
+    <button class="menu-btn secondary" id="btn-pause-settings">SETTINGS</button>
+    <button class="menu-btn secondary" id="btn-pause-hof">HALL OF FAME</button>
+    <button class="menu-btn secondary" id="btn-pause-instructions">INSTRUCTIONS</button>
+    <button class="menu-btn danger" id="btn-quit">QUIT TO MENU</button>
+    <div class="pause-reason">Press ESC to resume</div>
+  </div>
+</div>
+<div id="settings-menu" class="overlay">
+  <div class="panel">
+    <div class="panel-title">SETTINGS</div>
+    <div class="setting-row">
+      <span class="setting-label">Music Volume</span>
+      <input type="range" class="setting-slider" id="set-music-vol" min="0" max="100" value="30">
+      <span class="setting-value" id="val-music-vol">30</span>
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">SFX Volume</span>
+      <input type="range" class="setting-slider" id="set-sfx-vol" min="0" max="100" value="100">
+      <span class="setting-value" id="val-sfx-vol">100</span>
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">Difficulty</span>
+      <button class="setting-btn active" id="btn-diff-normal">NORMAL</button>
+      <button class="setting-btn" id="btn-diff-hard">HARDCORE</button>
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">Skin</span>
+      <button class="setting-btn active" id="btn-skin-kawaii">KAWAII</button>
+      <button class="setting-btn" id="btn-skin-nes">NES</button>
+    </div>
+    <button class="menu-btn" id="btn-settings-back" style="margin-top:12px">BACK</button>
+  </div>
+</div>
+<div id="hall-of-fame" class="overlay">
+  <div class="panel">
+    <div class="panel-title">HALL OF FAME</div>
+    <div id="hof-content"></div>
+    <button class="menu-btn" id="btn-hof-back" style="margin-top:8px">BACK</button>
+  </div>
+</div>
+<div id="instructions" class="overlay">
+  <div class="panel">
+    <div class="panel-title">HOW TO PLAY</div>
+    <div class="panel-text">You are a <span style="color:#00e676">python</span> in a carrot maze.</div>
+    <div class="panel-text">Eat <span style="color:#ffffff">rabbits</span> to grow and score points.</div>
+    <div class="panel-text">Avoid walls — <span style="color:#4a7c3f">green beds</span> are deadly.</div>
+    <div class="panel-text" style="margin-top:8px;color:#81c784">ARROWS / WASD — Move</div>
+    <div class="panel-text" style="color:#81c784">ESC — Pause</div>
+    <div class="panel-text" style="margin-top:8px;color:#a5d6a7">Eat 3 rabbits to level up!</div>
+    <div class="panel-text" style="color:#a5d6a7">New levels add walls &amp; maze patterns.</div>
+    <div class="panel-text" style="margin-top:8px;color:#ffab00">3 lives — lose one on death.</div>
+    <div class="panel-text" style="color:#ffab00">High scores saved locally.</div>
+    <div class="panel-text" style="margin-top:8px;color:#ce93d8">Bonuses appear! Unlock every 3 levels.</div>
+    <button class="menu-btn" id="btn-instructions-back" style="margin-top:12px">BACK</button>
+  </div>
+</div>
+<div id="continue-menu" class="overlay">
+  <div class="panel">
+    <div class="panel-title">YOU DIED</div>
+    <div class="hearts-display" id="continue-hearts"></div>
+    <div class="panel-text" style="color:#ffd54f;font-size:20px;margin:8px 0">Score: <span id="continue-score">0</span></div>
+    <div class="panel-text" style="color:#81c784">Level: <span id="continue-level">1</span></div>
+    <button class="menu-btn wide" id="btn-continue">CONTINUE</button>
+    <button class="menu-btn wide danger" id="btn-continue-quit">GIVE UP</button>
+    <div class="hint" style="margin-top:8px;color:rgba(255,255,255,0.4)">You lose a life when you give up</div>
+  </div>
+</div>
+<div id="game-over" class="overlay">
+  <div class="game-over-title">GAME OVER</div>
+  <div class="final-score">Score: <span id="final-score">0</span></div>
+  <div class="level-display">Level: <span id="final-level">1</span></div>
+  <div class="high-score">Best: <span id="high-score">0</span></div>
+  <div id="new-hs-msg" class="new-hs" style="display:none">NEW HIGH SCORE!</div>
+  <div id="hof-entry-row" class="hof-input-row" style="display:none">
+    <span style="color:#a5d6a7;font-size:14px">NAME:</span>
+    <input type="text" class="hof-name-input" id="hof-name-input" maxlength="3" placeholder="AAA">
+  </div>
+  <button class="restart-btn" id="restart-btn">PLAY AGAIN</button>
+  <div class="hint">Press ENTER or SPACE to restart</div>
 </div>
 </div>
+
 <script>
 (function(){
   "use strict";
 
-  // ---------- Const ----------
-  const COLS = 30, ROWS = 20, CELL = 30;
-  const BASE_TICK_MS = 500; // 2 Hz — 4x slower than original 125ms
-  const RABBITS_PER_LEVEL = 3; // level up after eating this many
+  // ---------- Sprite Skins ----------
+  const SKIN = { current: "kawaii" };
 
-  // Speed per level: each level is slightly faster
-  function currentTickMs(level) {
-    // Level 1: 500ms, Level 2: 400ms, Level 3: 333ms, etc.
-    // Never below 150ms
-    return Math.max(150, Math.floor(BASE_TICK_MS / (1 + (level - 1) * 0.25)));
-  }
-
-  const FLOOR = 0, BED = 1;
-  const DIRS = {UP:{dx:0,dy:-1},DOWN:{dx:0,dy:1},LEFT:{dx:-1,dy:0},RIGHT:{dx:1,dy:0}};
-
-  // ---------- Canvas ----------
-  const canvas = document.getElementById("game");
-  const ctx = canvas.getContext("2d");
-  ctx.imageSmoothingEnabled = false;
-
-  // ---------- Level Patterns ----------
-  // Simple predefined patterns. 0=FLOOR(path), 1=BED(wall/bush)
-  // Each pattern is 30x20 grid
-
-  function generateOpenField() {
-    // Level 1: completely open field — no walls at all
-    // User said: "Первый уровень - без грядок (стенок)"
-    // Rabbits spawn on FLOOR for this level
-    return Array.from({length: ROWS}, () => Array(COLS).fill(FLOOR));
-  }
-
-  function generateOneWall() {
-    // Level 2: one horizontal wall across the middle, with small carrot islands
-    const grid = Array.from({length: ROWS}, () => Array(COLS).fill(FLOOR));
-    const midY = Math.floor(ROWS / 2);
-    const startX = 5;
-    const endX = COLS - 6;
-    for (let x = startX; x <= endX; x += 2) {
-      grid[midY][x] = BED;
-    }
-    // Small carrot islands (for rabbits to inhabit)
-    for (let x = startX + 3; x <= endX - 3; x += 8) {
-      for (let dy = -1; dy <= 1; dy++) {
-        for (let dx = -1; dx <= 1; dx++) {
-          const cx = x + dx, cy = midY + dy;
-          if (cx >= 1 && cx < COLS-1 && cy >= 1 && cy < ROWS-1) {
-            grid[cy][cx] = BED;
-          }
-        }
-      }
-    }
-    return grid;
-  }
-
-  function generateTwoWalls() {
-    // Level 3: two parallel walls
-    const grid = Array.from({length: ROWS}, () => Array(COLS).fill(FLOOR));
-    const y1 = Math.floor(ROWS * 0.3);
-    const y2 = Math.floor(ROWS * 0.7);
-    const startX = 4;
-    const endX = COLS - 5;
-    for (let x = startX; x <= endX; x++) {
-      grid[y1][x] = BED;
-      grid[y2][x] = BED;
-    }
-    // Add some L-shaped extensions
-    grid[y1 - 1][startX + 2] = BED;
-    grid[y1 - 1][startX + 3] = BED;
-    grid[y2 + 1][endX - 2] = BED;
-    grid[y2 + 1][endX - 3] = BED;
-    return grid;
-  }
-
-  function generateCross() {
-    // Level 4: cross pattern
-    const grid = Array.from({length: ROWS}, () => Array(COLS).fill(FLOOR));
-    const midX = Math.floor(COLS / 2);
-    const midY = Math.floor(ROWS / 2);
-    // Vertical wall
-    for (let y = 3; y < ROWS - 3; y++) {
-      grid[y][midX] = BED;
-    }
-    // Horizontal wall
-    for (let x = 3; x < COLS - 3; x++) {
-      grid[midY][x] = BED;
-    }
-    // Thicken at intersection
-    grid[midY - 1][midX - 1] = BED;
-    grid[midY - 1][midX] = BED;
-    grid[midY + 1][midX] = BED;
-    grid[midY][midX - 1] = BED;
-    return grid;
-  }
-
-  function generatePatterns() {
-    // Level 5+: diagonal patterns and more complex layouts
-    const grid = Array.from({length: ROWS}, () => Array(COLS).fill(FLOOR));
-    const patternType = Math.floor(Math.random() * 3);
-    if (patternType === 0) {
-      // Diagonal stripes
-      for (let i = 0; i < ROWS * 2; i += 3) {
-        for (let r = 0; r < ROWS; r++) {
-          const c = i - r;
-          if (c >= 0 && c < COLS) grid[r][c] = BED;
-        }
-      }
-    } else if (patternType === 1) {
-      // Checkerboard rooms
-      for (let r = 0; r < ROWS; r += 5) {
-        for (let c = 0; c < COLS; c += 6) {
-          for (let dr = 0; dr < 3; dr++) {
-            for (let dc = 0; dc < 3; dc++) {
-              const x = c + dc, y = r + dr;
-              if (x < COLS && y < ROWS) grid[y][x] = BED;
+  const SPRITES = {
+    kawaii: {
+      drawSnake: function(segs, dir, animTime) {
+        const len = segs.length;
+        for (let i = len - 1; i >= 0; i--) {
+          const seg = segs[i]; const x = seg.x * CELL, y = seg.y * CELL;
+          const isHead = i === 0;
+          const fade = 1 - (i / (len + 5)) * 0.35;
+          const g = Math.floor(0xe6 * fade), b = Math.floor(0x76 * fade);
+          ctx.fillStyle = "#1b3a0f"; ctx.fillRect(x, y, CELL, CELL);
+          ctx.fillStyle = isHead ? "#00e676" : "rgb(0," + g + "," + b + ")";
+          ctx.fillRect(x + 2, y + 2, CELL - 4, CELL - 4);
+          if (isHead) {
+            ctx.fillStyle = "#1b3a0f";
+            let ex1, ey1, ex2, ey2; const d = dir;
+            if (d.dx === 1) { ex1 = x + 20; ey1 = y + 6; ex2 = x + 20; ey2 = y + 18; }
+            else if (d.dx === -1) { ex1 = x + 5; ey1 = y + 6; ex2 = x + 5; ey2 = y + 18; }
+            else if (d.dy === -1) { ex1 = x + 8; ey1 = y + 5; ex2 = x + 18; ey2 = y + 5; }
+            else { ex1 = x + 8; ey1 = y + 20; ex2 = x + 18; ey2 = y + 20; }
+            ctx.fillRect(ex1, ey1, 5, 5); ctx.fillRect(ex2, ey2, 5, 5);
+            if (Math.floor(animTime / 10) % 2 === 0) {
+              ctx.fillStyle = "#ff5252";
+              const tx = x + CELL / 2 + d.dx * 12, ty = y + CELL / 2 + d.dy * 12;
+              ctx.fillRect(tx - 1, ty - 1, 4, 4);
             }
           }
         }
+      },
+      drawRabbit: function(r) {
+        const x = Math.floor(r.vx), y = Math.floor(r.vy) - Math.floor(r.jumpOffset || 0);
+        if (r.jumping && r.jumpOffset > 2) {
+          ctx.fillStyle = "rgba(0,0,0,0.25)"; ctx.fillRect(x - 7, Math.floor(r.vy) - 1, 14, 4);
+        }
+        ctx.fillStyle = "#ffffff"; ctx.fillRect(x - 9, y - 9, 18, 18);
+        ctx.fillStyle = "#ffcdd2"; ctx.fillRect(x - 7, y - 18, 4, 10); ctx.fillRect(x + 3, y - 18, 4, 10);
+        ctx.fillStyle = "#f48fb1"; ctx.fillRect(x - 6, y - 16, 2, 5); ctx.fillRect(x + 4, y - 16, 2, 5);
+        ctx.fillStyle = "#212121"; ctx.fillRect(x - 4, y - 3, 2, 2); ctx.fillRect(x + 3, y - 3, 2, 2);
+        ctx.fillStyle = "#f48fb1"; ctx.fillRect(x - 1, y + 1, 2, 2);
+        if (r.eatingCarrot) {
+          ctx.fillStyle = "#f7931e"; ctx.fillRect(x + 5, y - 4, 5, 3);
+          ctx.fillStyle = "#4caf50"; ctx.fillRect(x + 5, y - 7, 3, 3);
+        }
+        if (r.freezeTimer > 0) {
+          ctx.fillStyle = "rgba(100,180,255,0.5)"; ctx.fillRect(x - 10, y - 18, 20, 20);
+        }
       }
-    } else {
-      // Spiralish: concentric L-shapes
-      for (let layer = 0; layer < 4; layer++) {
-        const offset = layer * 2 + 2;
-        if (offset >= Math.min(COLS, ROWS) / 2) break;
-        // Top
-        for (let x = offset; x < COLS - offset; x++) grid[offset][x] = BED;
-        // Bottom
-        for (let x = offset; x < COLS - offset; x++) grid[ROWS - 1 - offset][x] = BED;
-        // Left (skip corners already set)
-        for (let y = offset + 1; y < ROWS - 1 - offset; y++) grid[y][offset] = BED;
-        // Right (skip corners already set)
-        for (let y = offset + 1; y < ROWS - 1 - offset; y++) grid[y][COLS - 1 - offset] = BED;
-      }
-    }
-    return grid;
-  }
-
-  // ---------- Maze Generation (Hardcore mode) ----------
-  function shuffle(arr) {
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-    return arr;
-  }
-
-  function generateHardcoreMaze() {
-    const gridW = 14, gridH = 9;
-    const maze = Array.from({length: ROWS}, () => Array(COLS).fill(BED));
-    const visited = Array.from({length: gridH}, () => Array(gridW).fill(false));
-    function dfs(c, r) {
-      visited[r][c] = true;
-      const mx = c * 2 + 1, my = r * 2 + 1;
-      maze[my][mx] = FLOOR;
-      const dirs = shuffle([[0,-1],[0,1],[-1,0],[1,0]]);
-      for (const [dc, dr] of dirs) {
-        const nc = c + dc, nr = r + dr;
-        if (nc >= 0 && nc < gridW && nr >= 0 && nr < gridH && !visited[nr][nc]) {
-          maze[my + dr][mx + dc] = FLOOR;
-          dfs(nc, nr);
+    },
+    nes: {
+      drawSnake: function(segs, dir, animTime) {
+        const len = segs.length;
+        for (let i = len - 1; i >= 0; i--) {
+          const seg = segs[i]; const x = seg.x * CELL, y = seg.y * CELL;
+          const isHead = i === 0;
+          const shade = Math.floor(200 - (i / len) * 80);
+          ctx.fillStyle = "#000000"; ctx.fillRect(x, y, CELL, CELL);
+          ctx.fillStyle = isHead ? "#5cb85c" : "rgb(48," + Math.floor(shade * 0.6) + ",24)";
+          ctx.fillRect(x + 3, y + 3, CELL - 6, CELL - 6);
+          if (isHead) {
+            ctx.fillStyle = "#000000";
+            let ex1, ey1, ex2, ey2; const d = dir;
+            if (d.dx === 1) { ex1 = x + 18; ey1 = y + 5; ex2 = x + 18; ey2 = y + 17; }
+            else if (d.dx === -1) { ex1 = x + 7; ey1 = y + 5; ex2 = x + 7; ey2 = y + 17; }
+            else if (d.dy === -1) { ex1 = x + 7; ey1 = y + 5; ex2 = x + 18; ey2 = y + 5; }
+            else { ex1 = x + 7; ey1 = y + 19; ex2 = x + 18; ey2 = y + 19; }
+            ctx.fillRect(ex1, ey1, 6, 6); ctx.fillRect(ex2, ey2, 6, 6);
+            if (Math.floor(animTime / 12) % 2 === 0) {
+              ctx.fillStyle = "#e74c3c";
+              const tx = x + CELL / 2 + d.dx * 11, ty = y + CELL / 2 + d.dy * 11;
+              ctx.fillRect(tx - 2, ty - 2, 5, 5);
+            }
+          }
+        }
+      },
+      drawRabbit: function(r) {
+        const x = Math.floor(r.vx), y = Math.floor(r.vy) - Math.floor(r.jumpOffset || 0);
+        if (r.jumping && r.jumpOffset > 2) {
+          ctx.fillStyle = "rgba(0,0,0,0.3)"; ctx.fillRect(x - 8, Math.floor(r.vy) - 1, 16, 4);
+        }
+        ctx.fillStyle = "#aaaaaa"; ctx.fillRect(x - 10, y - 8, 20, 17);
+        ctx.fillStyle = "#e8e8e8"; ctx.fillRect(x - 8, y - 6, 16, 12);
+        ctx.fillStyle = "#888888"; ctx.fillRect(x - 8, y - 20, 3, 14); ctx.fillRect(x + 5, y - 20, 3, 14);
+        ctx.fillStyle = "#cccccc"; ctx.fillRect(x - 7, y - 18, 2, 10); ctx.fillRect(x + 6, y - 18, 2, 10);
+        ctx.fillStyle = "#000000"; ctx.fillRect(x - 5, y - 2, 3, 3); ctx.fillRect(x + 3, y - 2, 3, 3);
+        ctx.fillStyle = "#666666"; ctx.fillRect(x - 1, y + 2, 3, 2);
+        if (r.eatingCarrot) {
+          ctx.fillStyle = "#f7931e"; ctx.fillRect(x + 6, y - 4, 6, 4);
+          ctx.fillStyle = "#4caf50"; ctx.fillRect(x + 6, y - 7, 4, 3);
+        }
+        if (r.freezeTimer > 0) {
+          ctx.fillStyle = "rgba(100,180,255,0.5)"; ctx.fillRect(x - 12, y - 22, 24, 24);
         }
       }
     }
-    dfs(Math.floor(gridW/2), Math.floor(gridH/2));
-    return maze;
+  };
+
+  function currentSkin() { return SPRITES[SKIN.current]; }
+
+  // ---------- Audio System ----------
+  let audioReady = false;
+  function initAudio() { if (audioReady) return; try { zzfxX.resume(); } catch(e) {} audioReady = true; }
+
+  const SFX = {
+    eat:     [.3,,925,.04,.3,.6,1,.3,,6.27,-184,.09,.17],
+    death:   [1.5,.8,270,,.1,,1,1.5,,,,,,,,.1,.01],
+    levelUp: [.3,,537,.02,.02,.22,1,1.59,-6.98,4.97],
+    bonus:   [.3,,167,.01,.03,.15,1,2.11,,,,,,,,.05],
+    menuBlip:[.2,,925,.01,.02,.05,1,.5,,,697,.02],
+  };
+  let sfxVol = 1.0;
+
+  function playSFX(name) {
+    if (!audioReady) initAudio(); const p = SFX[name]; if (!p) return;
+    const sv = zzfxV; zzfxV = sfxVol * 0.3; zzfx(...p); zzfxV = sv;
   }
 
-  // ---------- Level System ----------
-  function generateLevel(level) {
-    if (level >= 6) return generateHardcoreMaze();
-    switch(level) {
-      case 1: return generateOpenField();
-      case 2: return generateOneWall();
-      case 3: return generateTwoWalls();
-      case 4: return generateCross();
-      default: return generatePatterns();
+  const BGM_MELODY = [
+    [523,.4],[659,.2],[784,.2],[659,.4],[784,.2],[1047,.6],
+    [784,.4],[659,.2],[523,.2],[587,.4],[659,.2],[523,.6],
+    [440,.4],[523,.2],[587,.2],[659,.4],[523,.4],[440,.8],
+    [392,.4],[440,.2],[523,.2],[587,.4],[659,.2],[392,.6],
+  ];
+  let bgmIdx = 0, bgmTimer = null, bgmPlaying = false, bgmVol = 0.06;
+
+  function scheduleBGMNote() {
+    if (!bgmPlaying || !game || !game.alive || game.paused) return;
+    const [freq, dur] = BGM_MELODY[bgmIdx % BGM_MELODY.length];
+    const sv = zzfxV; zzfxV = bgmVol;
+    zzfx(.08, 0, freq, .01, 0, dur*.5, 1, .5, 0, 0, 0, 0, 0, 0, 0, 0, 0, .5, 0, 0);
+    zzfxV = sv; bgmIdx++;
+    bgmTimer = setTimeout(scheduleBGMNote, dur * 1000);
+  }
+
+  function startBGM() { if (bgmPlaying || !audioReady) return; bgmPlaying = true; bgmIdx = 0; scheduleBGMNote(); }
+  function stopBGM() { bgmPlaying = false; if (bgmTimer) { clearTimeout(bgmTimer); bgmTimer = null; } }
+  function setMusicVolume(v) { bgmVol = v * 0.0012; }
+  function setSFXVolume(v) { sfxVol = v / 100; }
+
+  // ---------- Const ----------
+  const COLS = 30, ROWS = 20, CELL = 30, BASE_TICK_MS = 500, RABBITS_PER_LEVEL = 3;
+  function currentTickMs(level, speedMul) { return Math.max(75, Math.floor(BASE_TICK_MS / (1 + (level - 1) * 0.25) * (speedMul || 1))); }
+  const FLOOR = 0, BED = 1;
+
+  // ---------- Rabbit count by level ----------
+  function maxRabbitsForLevel(level) { return 5 + Math.floor((level - 1) / 3); }
+  function rabbitSpeedMul() { return (settings.difficulty === "hardcore") ? 1.3 : 1.0; }
+
+  // ---------- Bonus System ----------
+  const BONUS_TYPES = {
+    slow_down:     { name: "SLOW",  icon: "\u2744", color: "#4fc3f7", duration: 8000,   unlockLvl: 1, instant: false },
+    speed_up:      { name: "SPEED", icon: "\u26a1", color: "#ffd54f", duration: 8000,   unlockLvl: 1, instant: false },
+    plus_score:    { name: "+PTS",  icon: "\u2605", color: "#ff8f00", duration: 0,      unlockLvl: 1, instant: true },
+    kill_rabbit:   { name: "KILL",  icon: "\ud83d\udc80", color: "#e53935", duration: 0, unlockLvl: 4, instant: true },
+    extra_life:    { name: "+LIFE", icon: "\ud83d\udc96", color: "#ec407a", duration: 0, unlockLvl: 4, instant: true },
+    shorten_python:{ name: "CHOP",  icon: "\u2702", color: "#9ccc65", duration: 0,      unlockLvl: 4, instant: true },
+    pass_through:  { name: "GHOST", icon: "\ud83d\udc7b", color: "#ce93d8", duration: 10000, unlockLvl: 7, instant: false },
+    rage:          { name: "RAGE",  icon: "\ud83d\udd25", color: "#ff7043", duration: 7000,  unlockLvl: 7, instant: false },
+    wall_reverse:  { name: "SWAP",  icon: "\ud83d\udd04", color: "#4dd0e1", duration: 10000, unlockLvl: 7, instant: false },
+  };
+  const BONUS_SPAWN_INTERVAL = 10000;
+  const BONUS_MAX_ON_FIELD = 3;
+  const BONUS_TTL = 15000;
+  const BONUS_BLINK_START = 3000;
+
+  function getAvailableBonusTypes(level) {
+    const types = [];
+    for (const [key, def] of Object.entries(BONUS_TYPES)) {
+      if (level >= def.unlockLvl) types.push(key);
     }
+    return types;
   }
 
-  const maze = generateLevel(1);
-
-  // ---------- Bed graph (for rabbit movement) ----------
-  function buildBedGraphFromMaze(mazeArr) {
-    bedCells.length = 0;
-    bedNbrs.clear();
+  function spawnBonus(state) {
+    if (state.bonusesOnField.length >= BONUS_MAX_ON_FIELD) return;
+    const available = getAvailableBonusTypes(state.level);
+    if (available.length === 0) return;
+    const occupiedBonus = new Set(state.bonusesOnField.map(b => b.cx + "," + b.cy));
+    const snakeSet = new Set(state.snake.map(s => s.x + "," + s.y));
+    const freeCells = [];
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
-        if (mazeArr[r][c] === BED) bedCells.push(c + "," + r);
-      }
-    }
-    for (const key of bedCells) {
-      const [x, y] = key.split(",").map(Number);
-      const nbrs = [];
-      for (const d of [DIRS.UP, DIRS.DOWN, DIRS.LEFT, DIRS.RIGHT]) {
-        const nx = x + d.dx, ny = y + d.dy;
-        if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS && mazeArr[ny][nx] === BED) {
-          nbrs.push(nx + "," + ny);
+        const key = c + "," + r;
+        if (state.maze[r][c] === FLOOR && !snakeSet.has(key) && !occupiedBonus.has(key)) {
+          freeCells.push({ cx: c, cy: r });
         }
       }
-      bedNbrs.set(key, nbrs);
+    }
+    if (freeCells.length === 0) return;
+    const pos = freeCells[Math.floor(Math.random() * freeCells.length)];
+    const type = available[Math.floor(Math.random() * available.length)];
+    state.bonusesOnField.push({
+      type: type,
+      cx: pos.cx, cy: pos.cy,
+      ttl: BONUS_TTL,
+      spawnTime: BONUS_TTL,
+    });
+  }
+
+  function updateBonuses(state, dt) {
+    for (let i = state.bonusesOnField.length - 1; i >= 0; i--) {
+      const b = state.bonusesOnField[i];
+      b.ttl -= dt;
+      if (b.ttl <= 0) state.bonusesOnField.splice(i, 1);
+    }
+    for (const [key, buff] of Object.entries(state.activeBuffs)) {
+      if (buff.duration > 0) {
+        buff.remaining -= dt;
+        if (buff.remaining <= 0) removeBuff(state, key);
+      }
     }
   }
-  
-  const bedCells = [];
-  const bedNbrs = new Map();
-  // Initial build at load time (will be rebuilt on game start)
+
+  function applyBuff(state, type) {
+    const def = BONUS_TYPES[type];
+    if (!def) return;
+    if (def.instant) {
+      switch (type) {
+        case "plus_score":
+          state.score += 50;
+          emitParticles(state.snake[0].x * CELL + CELL / 2, state.snake[0].y * CELL + CELL / 2, "#ffd54f", 10, 3, 500);
+          break;
+        case "kill_rabbit":
+          for (const r of state.rabbits) {
+            const [bx, by] = r.bedKey.split(",").map(Number);
+            emitParticles(bx * CELL + CELL / 2, by * CELL + CELL / 2, "#ffffff", 8, 3, 400);
+          }
+          state.rabbits.length = 0;
+          state.spawnTimer = 0;
+          doShake(6);
+          break;
+        case "extra_life":
+          if (state.lives < 5) state.lives++;
+          emitParticles(state.snake[0].x * CELL + CELL / 2, state.snake[0].y * CELL + CELL / 2, "#ec407a", 12, 3, 600);
+          break;
+        case "shorten_python":
+          const remove = Math.max(1, Math.floor(state.snake.length / 3));
+          if (state.snake.length > 2) state.snake.splice(state.snake.length - remove, remove);
+          doShake(3);
+          break;
+      }
+      return;
+    }
+    if (type === "speed_up" && state.activeBuffs.slow_down) removeBuff(state, "slow_down");
+    if (type === "slow_down" && state.activeBuffs.speed_up) removeBuff(state, "speed_up");
+    state.activeBuffs[type] = { remaining: def.duration, duration: def.duration };
+  }
+
+  function removeBuff(state, type) {
+    delete state.activeBuffs[type];
+  }
+
+  function clearBuffs(state) {
+    state.activeBuffs = {};
+    state.bonusesOnField = [];
+  }
+
+  function checkBonusCollisions(state) {
+    const head = state.snake[0];
+    for (let i = state.bonusesOnField.length - 1; i >= 0; i--) {
+      const b = state.bonusesOnField[i];
+      if (b.cx === head.x && b.cy === head.y) {
+        applyBuff(state, b.type);
+        playSFX("bonus");
+        state.bonusesOnField.splice(i, 1);
+      }
+    }
+  }
+
+  function drawBonuses() {
+    const t = performance.now();
+    for (const b of game.bonusesOnField) {
+      const cx = b.cx * CELL + CELL / 2;
+      const cy = b.cy * CELL + CELL / 2;
+      const def = BONUS_TYPES[b.type];
+      const blinking = b.ttl < BONUS_BLINK_START && Math.floor(b.ttl / 200) % 2 === 0;
+      if (b.ttl < BONUS_BLINK_START && !blinking) continue;
+      const pulse = 1 + Math.sin(t * 0.005 + b.cx * 0.7) * 0.15;
+      const size = Math.floor(CELL * 0.65 * pulse);
+      ctx.globalAlpha = 0.25 + Math.sin(t * 0.005) * 0.1;
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(Math.floor(cx - size / 2) - 2, Math.floor(cy - size / 2) - 2, size + 4, size + 4);
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = def.color;
+      ctx.fillRect(Math.floor(cx - size / 2), Math.floor(cy - size / 2), size, size);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "#ffffff";
+      ctx.font = Math.floor(size * 0.55) + "px monospace";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(def.icon, cx, cy + 1);
+      ctx.globalAlpha = 0.3 + Math.sin(t * 0.006) * 0.1;
+      ctx.strokeStyle = def.color;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(Math.floor(cx - size / 2) - 2, Math.floor(cy - size / 2) - 2, size + 4, size + 4);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  function drawBuffHUD() {
+    if (!game || !game.alive) return;
+    const buffs = Object.entries(game.activeBuffs);
+    if (buffs.length === 0) return;
+    const startX = COLS * CELL - 130;
+    const startY = 6;
+    ctx.fillStyle = "rgba(0,0,0,0.5)";
+    ctx.fillRect(startX - 4, startY - 4, 126, 18 + buffs.length * 20);
+    ctx.fillStyle = "#ce93d8";
+    ctx.font = "10px monospace";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fillText("BUFFS", startX + 2, startY);
+    for (let i = 0; i < buffs.length; i++) {
+      const [type, buff] = buffs[i];
+      const def = BONUS_TYPES[type];
+      const remainingSec = Math.ceil(buff.remaining / 1000);
+      const barW = 80;
+      const prog = Math.min(1, buff.remaining / buff.duration);
+      const by = startY + 12 + i * 20;
+      ctx.fillStyle = def.color;
+      ctx.font = "11px monospace";
+      ctx.fillText(def.icon + " " + def.name, startX + 2, by);
+      ctx.fillText(remainingSec + "s", startX + 88, by);
+      ctx.fillStyle = "rgba(255,255,255,0.15)";
+      ctx.fillRect(startX + 2, by + 14, barW, 4);
+      ctx.fillStyle = def.color;
+      ctx.fillRect(startX + 2, by + 14, Math.floor(barW * prog), 4);
+    }
+  }
+  const DIRS = {UP:{dx:0,dy:-1},DOWN:{dx:0,dy:1},LEFT:{dx:-1,dy:0},RIGHT:{dx:1,dy:0}};
+
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d"); ctx.imageSmoothingEnabled = false;
+
+  // ---------- localStorage helpers ----------
+  const LS_KEYS = { hi: "crmz_hi", scores: "crmz_scores", settings: "crmz_settings" };
+  function loadSettings() { try { const raw = localStorage.getItem(LS_KEYS.settings); if (raw) return JSON.parse(raw); } catch(e) {} return { musicVol: 30, sfxVol: 100, difficulty: "normal", skin: "kawaii" }; }
+  function saveSettings(s) { try { localStorage.setItem(LS_KEYS.settings, JSON.stringify(s)); } catch(e) {} }
+  function loadScores() { try { const raw = localStorage.getItem(LS_KEYS.scores); if (raw) { const arr = JSON.parse(raw); if (Array.isArray(arr)) return arr.slice(0, 10); } } catch(e) {} return []; }
+  function saveScores(arr) { try { localStorage.setItem(LS_KEYS.scores, JSON.stringify(arr.slice(0, 10))); } catch(e) {} }
+  function addScore(name, score, level) { const scores = loadScores(); scores.push({ name: name.toUpperCase().slice(0, 3), score: score, level: level }); scores.sort((a, b) => b.score - a.score); saveScores(scores); return scores.slice(0, 10); }
+  function isHighScore(score) { const scores = loadScores(); if (scores.length < 10) return true; return score > scores[scores.length - 1].score; }
+
+  // ---------- Game state ----------
+  let game = null;
+  let uiFocus = false;
+  let settings = loadSettings();
+  SKIN.current = settings.skin || "kawaii";
+  setMusicVolume(settings.musicVol || 30);
+  setSFXVolume(settings.sfxVol || 100);
+
+  // ---------- Menu management ----------
+  const allOverlays = ["main-menu","pause-menu","settings-menu","hall-of-fame","instructions","continue-menu","game-over"];
+  let prevOverlay = null;
+
+  function hideAllOverlays() { for (const id of allOverlays) document.getElementById(id).classList.remove("visible"); uiFocus = false; }
+  function showOverlay(id) { hideAllOverlays(); document.getElementById(id).classList.add("visible"); uiFocus = true; }
+  function showMainMenu() { stopBGM(); if (game) game.alive = false; hideAllOverlays(); document.getElementById("main-menu").classList.add("visible"); uiFocus = true; }
+  function showPauseMenu() { if (!game || !game.alive) return; prevOverlay = null; showOverlay("pause-menu"); }
+  function resumeGame() { hideAllOverlays(); game.paused = false; game.lastTimestamp = 0; if (!bgmPlaying) { bgmIdx = 0; startBGM(); } }
+  function showSettings(fromPause) { prevOverlay = fromPause ? "pause-menu" : "main-menu"; showOverlay("settings-menu"); updateSettingsUI(); }
+  function showHallOfFame(fromPause) { prevOverlay = fromPause ? "pause-menu" : "main-menu"; showOverlay("hall-of-fame"); renderHallOfFame(); }
+  function showInstructions(fromPause) { prevOverlay = fromPause ? "pause-menu" : "main-menu"; showOverlay("instructions"); }
+  function goBackFromOverlay() { if (prevOverlay === "pause-menu") showPauseMenu(); else showMainMenu(); }
+
+  function updateSettingsUI() {
+    document.getElementById("set-music-vol").value = settings.musicVol;
+    document.getElementById("val-music-vol").textContent = settings.musicVol;
+    document.getElementById("set-sfx-vol").value = settings.sfxVol;
+    document.getElementById("val-sfx-vol").textContent = settings.sfxVol;
+    document.getElementById("btn-diff-normal").classList.toggle("active", settings.difficulty === "normal");
+    document.getElementById("btn-diff-hard").classList.toggle("active", settings.difficulty === "hardcore");
+    document.getElementById("btn-skin-kawaii").classList.toggle("active", settings.skin === "kawaii");
+    document.getElementById("btn-skin-nes").classList.toggle("active", settings.skin === "nes");
+  }
+
+  function renderHallOfFame() {
+    const scores = loadScores();
+    const container = document.getElementById("hof-content");
+    if (scores.length === 0) { container.innerHTML = '<div class="hof-empty">No scores yet. Go play!</div>'; return; }
+    let html = '<table class="hof-table"><tr><th>#</th><th>NAME</th><th>SCORE</th><th>LVL</th></tr>';
+    scores.forEach((s, i) => {
+      const highlight = (game && game.score === s.score && game.level === s.level) ? ' class="current"' : '';
+      html += '<tr' + highlight + '><td><span class="hof-rank">' + (i + 1) + '</span></td><td>' + s.name + '</td><td>' + s.score + '</td><td>' + s.level + '</td></tr>';
+    });
+    html += '</table>'; container.innerHTML = html;
+  }
+
+  // ---------- Level Patterns ----------
+  function generateOpenField() { return Array.from({length: ROWS}, () => Array(COLS).fill(FLOOR)); }
+  function generateOneWall() {
+    const grid = Array.from({length: ROWS}, () => Array(COLS).fill(FLOOR));
+    const midY = Math.floor(ROWS / 2), startX = 5, endX = COLS - 6;
+    for (let x = startX; x <= endX; x += 2) grid[midY][x] = BED;
+    for (let x = startX + 3; x <= endX - 3; x += 8)
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const cx = x + dx, cy = midY + dy;
+        if (cx >= 1 && cx < COLS-1 && cy >= 1 && cy < ROWS-1) grid[cy][cx] = BED;
+      }
+    return grid;
+  }
+  function generateTwoWalls() {
+    const grid = Array.from({length: ROWS}, () => Array(COLS).fill(FLOOR));
+    const y1 = Math.floor(ROWS * 0.3), y2 = Math.floor(ROWS * 0.7), startX = 4, endX = COLS - 5;
+    for (let x = startX; x <= endX; x++) { grid[y1][x] = BED; grid[y2][x] = BED; }
+    grid[y1-1][startX+2] = BED; grid[y1-1][startX+3] = BED; grid[y2+1][endX-2] = BED; grid[y2+1][endX-3] = BED;
+    return grid;
+  }
+  function generateCross() {
+    const grid = Array.from({length: ROWS}, () => Array(COLS).fill(FLOOR));
+    const midX = Math.floor(COLS/2), midY = Math.floor(ROWS/2);
+    for (let y = 3; y < ROWS-3; y++) grid[y][midX] = BED;
+    for (let x = 3; x < COLS-3; x++) grid[midY][x] = BED;
+    grid[midY-1][midX-1] = BED; grid[midY-1][midX] = BED; grid[midY+1][midX] = BED; grid[midY][midX-1] = BED;
+    return grid;
+  }
+  function generatePatterns() {
+    const grid = Array.from({length: ROWS}, () => Array(COLS).fill(FLOOR));
+    const t = Math.floor(Math.random() * 3);
+    if (t === 0) { for (let i = 0; i < ROWS*2; i += 3) for (let r = 0; r < ROWS; r++) { const c = i-r; if (c>=0&&c<COLS) grid[r][c] = BED; } }
+    else if (t === 1) { for (let r = 0; r < ROWS; r += 5) for (let c = 0; c < COLS; c += 6) for (let dr = 0; dr < 3; dr++) for (let dc = 0; dc < 3; dc++) { const x=c+dc,y=r+dr; if(x<COLS&&y<ROWS)grid[y][x]=BED; } }
+    else { for (let l=0;l<4;l++){const o=l*2+2;if(o>=Math.min(COLS,ROWS)/2)break;for(let x=o;x<COLS-o;x++)grid[o][x]=BED;for(let x=o;x<COLS-o;x++)grid[ROWS-1-o][x]=BED;for(let y=o+1;y<ROWS-1-o;y++)grid[y][o]=BED;for(let y=o+1;y<ROWS-1-o;y++)grid[y][COLS-1-o]=BED;} }
+    return grid;
+  }
+  function shuffle(arr) { for (let i = arr.length-1; i>0; i--) { const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
+  function generateHardcoreMaze() {
+    const gridW=14,gridH=9;
+    const maze=Array.from({length:ROWS},()=>Array(COLS).fill(BED));
+    const visited=Array.from({length:gridH},()=>Array(gridW).fill(false));
+    function dfs(c,r){visited[r][c]=true;const mx=c*2+1,my=r*2+1;maze[my][mx]=FLOOR;const dirs=shuffle([[0,-1],[0,1],[-1,0],[1,0]]);for(const[dc,dr]of dirs){const nc=c+dc,nr=r+dr;if(nc>=0&&nc<gridW&&nr>=0&&nr<gridH&&!visited[nr][nc]){maze[my+dr][mx+dc]=FLOOR;dfs(nc,nr);}}}
+    dfs(Math.floor(gridW/2),Math.floor(gridH/2));return maze;
+  }
+  function generateLevel(level) { if(level>=6)return generateHardcoreMaze();switch(level){case 1:return generateOpenField();case 2:return generateOneWall();case 3:return generateTwoWalls();case 4:return generateCross();default:return generatePatterns();} }
+  const maze = generateLevel(1);
+  function buildBedGraphFromMaze(mazeArr) {
+    bedCells.length = 0; bedNbrs.clear();
+    for (let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) if(mazeArr[r][c]===BED) bedCells.push(c+","+r);
+    for(const key of bedCells){const[x,y]=key.split(",").map(Number);const nbrs=[];for(const d of[DIRS.UP,DIRS.DOWN,DIRS.LEFT,DIRS.RIGHT]){const nx=x+d.dx,ny=y+d.dy;if(nx>=0&&nx<COLS&&ny>=0&&ny<ROWS&&mazeArr[ny][nx]===BED)nbrs.push(nx+","+ny);}bedNbrs.set(key,nbrs);}
+  }
+  const bedCells = []; const bedNbrs = new Map();
   buildBedGraphFromMaze(generateLevel(1));
 
   // ---------- Shake ----------
   const shake = { intensity: 0, decay: 0.88 };
   function doShake(v) { shake.intensity = Math.max(shake.intensity, v); }
-  function updateShake() {
-    if (shake.intensity < 0.3) { shake.intensity = 0; return; }
-    shake.intensity *= shake.decay;
-  }
-  function shakeOffset() {
-    if (shake.intensity < 0.3) return { x: 0, y: 0 };
-    return {
-      x: (Math.random() - 0.5) * shake.intensity * 2,
-      y: (Math.random() - 0.5) * shake.intensity * 2
-    };
-  }
+  function updateShake() { if (shake.intensity < 0.3) { shake.intensity = 0; return; } shake.intensity *= shake.decay; }
+  function shakeOffset() { if (shake.intensity < 0.3) return {x:0,y:0}; return {x:(Math.random()-0.5)*shake.intensity*2,y:(Math.random()-0.5)*shake.intensity*2}; }
 
   // ---------- Particles ----------
   let particles = [];
-  function emitParticles(x, y, color, count, speed, life) {
-    for (let i = 0; i < count; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const spd = speed * (0.3 + Math.random() * 0.7);
-      particles.push({
-        x: x, y: y, color: color,
-        vx: Math.cos(angle) * spd, vy: Math.sin(angle) * spd - 1,
-        size: 3 + Math.random() * 4, life: life * (0.5 + Math.random() * 0.5),
-        maxLife: life * (0.5 + Math.random() * 0.5)
-      });
+  function emitParticles(x,y,color,count,speed,life){for(let i=0;i<count;i++){const angle=Math.random()*Math.PI*2,spd=speed*(0.3+Math.random()*0.7);particles.push({x:x,y:y,color:color,vx:Math.cos(angle)*spd,vy:Math.sin(angle)*spd-1,size:3+Math.random()*4,life:life*(0.5+Math.random()*0.5),maxLife:life*(0.5+Math.random()*0.5)});}}
+  function updateParticles(dt){for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx*(dt/16);p.y+=p.vy*(dt/16);p.vy+=0.15;p.life-=dt;if(p.life<=0)particles.splice(i,1);}}
+  function drawParticles(){for(const p of particles){const alpha=Math.max(0,p.life/p.maxLife);ctx.globalAlpha=alpha;ctx.fillStyle=p.color;ctx.fillRect(Math.floor(p.x-p.size/2),Math.floor(p.y-p.size/2),p.size,p.size);}ctx.globalAlpha=1;}
+
+  // ---------- BFS ----------
+  function bfsFromSnake(bedKeys,snakeHead){const dist=new Map();for(const k of bedKeys)dist.set(k,99);let ck=null,cd=Infinity;for(const k of bedKeys){const[bx,by]=k.split(",").map(Number);const d=Math.abs(bx-snakeHead.x)+Math.abs(by-snakeHead.y);if(d<cd){cd=d;ck=k;}}if(!ck)return dist;dist.set(ck,0);const q=[ck];while(q.length>0){const cur=q.shift(),curD=dist.get(cur);for(const nb of(bedNbrs.get(cur)||[])){if(dist.get(nb)>curD+1){dist.set(nb,curD+1);q.push(nb);}}}return dist;}
+
+  // ---------- Snake start finder ----------
+  function findSafeSnakeStart(mazeArr){
+    const dl=[[0,-1],[0,1],[-1,0],[1,0]];let best=null,bs=-1;
+    for(let r=2;r<ROWS-2;r++)for(let c=3;c<COLS-4;c++){
+      if(mazeArr[r][c]===BED)continue;if(mazeArr[r][c-1]===BED||mazeArr[r][c-2]===BED)continue;
+      const bc=[{x:c-1,y:r},{x:c-2,y:r}];let sd=0,mc=0;
+      for(const[dx,dy]of dl){const nx=c+dx,ny=r+dy;if(nx>=0&&nx<COLS&&ny>=0&&ny<ROWS&&mazeArr[ny][nx]!==BED){if(bc.some(b=>b.x===nx&&b.y===ny))continue;sd++;let cl=1;for(let i=2;i<10;i++){const fx=c+dx*i,fy=r+dy*i;if(fx<0||fx>=COLS||fy<0||fy>=ROWS||mazeArr[fy][fx]===BED)break;cl++;}if(cl>mc)mc=cl;}}
+      if(sd<2||mc<3)continue;const cd=Math.abs(c-COLS/2)+Math.abs(r-ROWS/2);const sc=mc*10+sd*5-cd;if(sc>bs){bs=sc;best={x:c,y:r};}
     }
-  }
-  function updateParticles(dt) {
-    for (let i = particles.length - 1; i >= 0; i--) {
-      const p = particles[i];
-      p.x += p.vx * (dt / 16);
-      p.y += p.vy * (dt / 16);
-      p.vy += 0.15;
-      p.life -= dt;
-      if (p.life <= 0) particles.splice(i, 1);
-    }
-  }
-  function drawParticles() {
-    for (const p of particles) {
-      const alpha = Math.max(0, p.life / p.maxLife);
-      ctx.globalAlpha = alpha;
-      ctx.fillStyle = p.color;
-      ctx.fillRect(Math.floor(p.x - p.size / 2), Math.floor(p.y - p.size / 2), p.size, p.size);
-    }
-    ctx.globalAlpha = 1;
+    if(best)return best;
+    for(let r=2;r<ROWS-2;r++)for(let c=2;c<COLS-2;c++){if(mazeArr[r][c]===BED)continue;const bc2=[{x:c-1,y:r},{x:c-2,y:r}];let sd=0;for(const[dx,dy]of dl){const nx=c+dx,ny=r+dy;if(nx>=0&&nx<COLS&&ny>=0&&ny<ROWS&&mazeArr[ny][nx]!==BED){if(bc2.some(b=>b.x===nx&&b.y===ny))continue;sd++;}}if(sd>=2)return{x:c,y:r};}
+    for(let r=1;r<ROWS-1;r++)for(let c=1;c<COLS-1;c++)if(mazeArr[r][c]!==BED)return{x:c,y:r};
+    return{x:15,y:10};
   }
 
-  // ---------- BFS on bed graph ----------
-  function bfsFromSnake(bedKeys, snakeHead) {
-    const dist = new Map();
-    for (const k of bedKeys) dist.set(k, 99);
-    let closestKey = null, closestDist = Infinity;
-    for (const k of bedKeys) {
-      const [bx, by] = k.split(",").map(Number);
-      const d = Math.abs(bx - snakeHead.x) + Math.abs(by - snakeHead.y);
-      if (d < closestDist) { closestDist = d; closestKey = k; }
-    }
-    if (!closestKey) return dist;
-    dist.set(closestKey, 0);
-    const q = [closestKey];
-    while (q.length > 0) {
-      const cur = q.shift(), curD = dist.get(cur);
-      for (const nb of (bedNbrs.get(cur) || [])) {
-        if (dist.get(nb) > curD + 1) { dist.set(nb, curD + 1); q.push(nb); }
-      }
-    }
-    return dist;
-  }
-
-  // ---------- Game state ----------
-  let game = null;
-
-  // ---------- Safe snake start finder ----------
-  function findSafeSnakeStart(mazeArr) {
-    const dirList = [[0,-1],[0,1],[-1,0],[1,0]];
-    let best = null, bestScore = -1;
-    for (let r = 2; r < ROWS - 2; r++) {
-      for (let c = 3; c < COLS - 4; c++) {
-        if (mazeArr[r][c] === BED) continue;
-        if (mazeArr[r][c-1] === BED || mazeArr[r][c-2] === BED) continue;
-        const bodyCells = [{x: c-1, y: r}, {x: c-2, y: r}];
-        let safeDirs = 0, maxClear = 0;
-        for (const [dx, dy] of dirList) {
-          const nx = c + dx, ny = r + dy;
-          if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS && mazeArr[ny][nx] !== BED) {
-            if (bodyCells.some(bc => bc.x === nx && bc.y === ny)) continue;
-            safeDirs++;
-            let clear = 1;
-            for (let i = 2; i < 10; i++) {
-              const fx = c + dx * i, fy = r + dy * i;
-              if (fx < 0 || fx >= COLS || fy < 0 || fy >= ROWS || mazeArr[fy][fx] === BED) break;
-              clear++;
-            }
-            if (clear > maxClear) maxClear = clear;
-          }
-        }
-        if (safeDirs < 2) continue;
-        if (maxClear < 3) continue;
-        const centerDist = Math.abs(c - COLS/2) + Math.abs(r - ROWS/2);
-        const score = maxClear * 10 + safeDirs * 5 - centerDist;
-        if (score > bestScore) {
-          bestScore = score;
-          best = {x: c, y: r};
-        }
-      }
-    }
-    if (best) return best;
-    for (let r = 2; r < ROWS - 2; r++) {
-      for (let c = 2; c < COLS - 2; c++) {
-        if (mazeArr[r][c] === BED) continue;
-        const bodyCells2 = [{x: c-1, y: r}, {x: c-2, y: r}];
-        let safeDirs = 0;
-        for (const [dx, dy] of dirList) {
-          const nx = c + dx, ny = r + dy;
-          if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS && mazeArr[ny][nx] !== BED) {
-            if (bodyCells2.some(bc => bc.x === nx && bc.y === ny)) continue;
-            safeDirs++;
-          }
-        }
-        if (safeDirs >= 2) return {x: c, y: r};
-      }
-    }
-    for (let r = 1; r < ROWS - 1; r++)
-      for (let c = 1; c < COLS - 1; c++)
-        if (mazeArr[r][c] !== BED) return {x: c, y: r};
-    return {x: 15, y: 10};
-  }
-
-  function newGame() {
-    const lvl = 1;
-    const m = generateLevel(lvl);
-    const ss = findSafeSnakeStart(m);
+  function newGame(){
+    const lvl=1,m=generateLevel(lvl),ss=findSafeSnakeStart(m);
     buildBedGraphFromMaze(m);
-    return {
-      level: lvl,
-      rabbitsEaten: 0,
-      maze: m,
-      snake: [{x:ss.x, y:ss.y}, {x:ss.x-1, y:ss.y}, {x:ss.x-2, y:ss.y}],
-      dir: {dx:0, dy:0}, nextDir: {dx:0, dy:0},
-      growPending: 0,
-      rabbits: [],
-      score: 0,
-      highScore: Math.max(0, parseInt(localStorage.getItem("crmz_hi") || "0")),
-      alive: false,
-      accumulator: 0,
-      spawnTimer: 0,
-      eatenCarrots: new Set() // R3: track eaten carrots
-    };
+    return{level:lvl,rabbitsEaten:0,levelRabbitsEaten:0,maze:m,
+      snake:[{x:ss.x,y:ss.y},{x:ss.x-1,y:ss.y},{x:ss.x-2,y:ss.y}],
+      dir:{dx:0,dy:0},nextDir:{dx:0,dy:0},growPending:0,rabbits:[],score:0,
+      highScore:Math.max(0,parseInt(localStorage.getItem(LS_KEYS.hi)||"0")),
+      alive:false,paused:false,accumulator:0,spawnTimer:0,eatenCarrots:new Set(),
+      lives:3,lastTimestamp:0,
+      bonusesOnField:[],activeBuffs:{},bonusSpawnTimer:0};
+  }
+
+  function restartLevel(){
+    const m=game.maze,ss=findSafeSnakeStart(m);
+    game.snake=[{x:ss.x,y:ss.y},{x:ss.x-1,y:ss.y},{x:ss.x-2,y:ss.y}];
+    game.dir={dx:0,dy:0};game.nextDir={dx:0,dy:0};game.growPending=0;
+    game.accumulator=0;game.lastTimestamp=0;game.rabbits=[];game.eatenCarrots=new Set();
+    game.alive=true;game.paused=false;hideAllOverlays();
+    spawnInitialRabbits(game);buildBedGraphFromMaze(m);
+    stopBGM();setTimeout(startBGM,100);
   }
 
   // ---------- Rabbit AI ----------
-  function randPersonality() {
-    return { boldness: 0.3 + Math.random() * 0.5, skittishness: 0.2 + Math.random() * 0.7, speed: 0.5 + Math.random() * 0.5 };
+  function randPersonality(){return{boldness:0.3+Math.random()*0.5,skittishness:0.2+Math.random()*0.7,speed:0.5+Math.random()*0.5};}
+  function makeRabbit(bedKey){const[bx,by]=bedKey.split(",").map(Number);const p=randPersonality();const spd=rabbitSpeedMul();const iv=(2500+p.boldness*1500+(Math.random()-0.5)*1000)/spd;return{bedKey,prevBedKey:null,vx:bx*CELL+CELL/2,vy:by*CELL+CELL/2,jumping:false,targetBedKey:null,animProgress:0,animDuration:300/spd,jumpOffset:0,jumpTimer:iv*0.3+Math.random()*iv*0.3,jumpInterval:iv,freezeTimer:0,carrotEatTimer:2000+Math.random()*3000,eatingCarrot:false,isFloorRabbit:false,personality:p};}
+  function makeFloorRabbit(floorKey){const[bx,by]=floorKey.split(",").map(Number);const p=randPersonality();const spd=rabbitSpeedMul();const iv=(3000+Math.random()*2000)/spd;return{bedKey:floorKey,prevBedKey:null,vx:bx*CELL+CELL/2,vy:by*CELL+CELL/2,jumping:false,targetBedKey:null,animProgress:0,animDuration:400/spd,jumpOffset:0,jumpTimer:iv*0.3+Math.random()*iv*0.3,jumpInterval:iv,freezeTimer:0,carrotEatTimer:5000,eatingCarrot:false,isFloorRabbit:true,personality:p};}
+
+  function spawnInitialRabbits(state){
+    const maxR = maxRabbitsForLevel(state.level);
+    const n = 4 + Math.floor((state.level - 1) / 3) + (Math.random() < 0.5 ? 0 : 1);
+    const pool=bedCells.length>0?bedCells:[];
+    if(pool.length===0){const fp=[];const h=state.snake[0];for(let r=2;r<ROWS-2;r++)for(let c=2;c<COLS-2;c++){if(state.maze[r][c]===FLOOR&&(Math.abs(r-h.y)+Math.abs(c-h.x))>6)fp.push(c+","+r);}const sh=fp.sort(()=>Math.random()-0.5);for(let i=0;i<Math.min(n,sh.length);i++)state.rabbits.push(makeFloorRabbit(sh[i]));}
+    else{const sh=[...pool].sort(()=>Math.random()-0.5);for(let i=0;i<Math.min(n,sh.length);i++)state.rabbits.push(makeRabbit(sh[i]));}
   }
 
-  function makeRabbit(bedKey) {
-    const [bx, by] = bedKey.split(",").map(Number);
-    const p = randPersonality();
-    const interval = 2500 + p.boldness * 1500 + (Math.random() - 0.5) * 1000;
-    return {
-      bedKey: bedKey, prevBedKey: null,
-      vx: bx * CELL + CELL / 2, vy: by * CELL + CELL / 2,
-      jumping: false, targetBedKey: null, animProgress: 0, animDuration: 300, jumpOffset: 0,
-      jumpTimer: interval * 0.3 + Math.random() * interval * 0.3,
-      jumpInterval: interval,
-      freezeTimer: 0,
-      carrotEatTimer: 2000 + Math.random() * 3000,
-      eatingCarrot: false,
-      isFloorRabbit: false,
-      personality: p
-    };
-  }
-  
-  function makeFloorRabbit(floorKey) {
-    const [bx, by] = floorKey.split(",").map(Number);
-    const p = randPersonality();
-    const interval = 3000 + Math.random() * 2000;
-    return {
-      bedKey: floorKey, prevBedKey: null,
-      vx: bx * CELL + CELL / 2, vy: by * CELL + CELL / 2,
-      jumping: false, targetBedKey: null, animProgress: 0, animDuration: 400, jumpOffset: 0,
-      jumpTimer: interval * 0.3 + Math.random() * interval * 0.3,
-      jumpInterval: interval,
-      freezeTimer: 0,
-      carrotEatTimer: 5000,
-      eatingCarrot: false,
-      isFloorRabbit: true,
-      personality: p
-    };
+  function respawnRabbit(state){
+    const occ=new Set(state.rabbits.map(r=>r.bedKey)),free=bedCells.filter(k=>!occ.has(k));
+    if(free.length>0){state.rabbits.push(makeRabbit(free[Math.floor(Math.random()*free.length)]));}
+    else{const h=state.snake[0];let t=0;while(t<20){const rx=2+Math.floor(Math.random()*(COLS-4)),ry=2+Math.floor(Math.random()*(ROWS-4));if(state.maze[ry][rx]===FLOOR&&(Math.abs(ry-h.y)+Math.abs(rx-h.x))>5){const key=rx+","+ry;if(!occ.has(key)){state.rabbits.push(makeFloorRabbit(key));return;}}t++;}}
   }
 
-  function spawnInitialRabbits(state) {
-    const n = 4 + Math.floor(Math.random() * 2);
-    // If no BED cells available (Level 1), use FLOOR cells for rabbit spawn
-    const pool = bedCells.length > 0 ? bedCells : [];
-    if (pool.length === 0) {
-      // Spawn on FLOOR tiles far from snake
-      const floorPool = [];
-      const head = state.snake[0];
-      for (let r = 2; r < ROWS - 2; r++) {
-        for (let c = 2; c < COLS - 2; c++) {
-          if (state.maze[r][c] === FLOOR && (Math.abs(r - head.y) + Math.abs(c - head.x)) > 6) {
-            floorPool.push(c + "," + r);
-          }
-        }
-      }
-      const shuffled = floorPool.sort(() => Math.random() - 0.5);
-      for (let i = 0; i < Math.min(n, shuffled.length); i++) {
-        state.rabbits.push(makeFloorRabbit(shuffled[i]));
-      }
-    } else {
-      const shuffled = [...pool].sort(() => Math.random() - 0.5);
-      for (let i = 0; i < Math.min(n, shuffled.length); i++) {
-        state.rabbits.push(makeRabbit(shuffled[i]));
-      }
+  function weightedPick(c){if(c.length===0)return null;if(c.length===1)return c[0].bed;const t=c.reduce((s,x)=>s+Math.max(0.01,x.score),0);let r=Math.random()*t;for(const x of c){r-=Math.max(0.01,x.score);if(r<=0)return x.bed;}return c[c.length-1].bed;}
+  function fleeScore(bk,r,bd,rabs){let s=(bd.get(bk)||0)*2;if(Math.random()<0.2)s+=(Math.random()-0.5)*10;if(rabs.some(x=>x.bedKey===bk&&x!==r))s-=3;if(bk===r.prevBedKey)s-=5;return s;}
+  function roamScore(bk,r,rabs){let s=0;if(bk===r.prevBedKey)s-=0.4;if(rabs.some(x=>x.bedKey===bk&&x!==r))s-=0.5;const[c1,r1]=bk.split(",").map(Number);if((r1*13+c1*7)%5<2){s+=0.35;if(game&&game.eatenCarrots&&!game.eatenCarrots.has(bk))s+=0.2;}s+=(Math.random()-0.5)*0.8;return s;}
+  function getFloorNbrs(key){const[x,y]=key.split(",").map(Number),nb=[];for(const d of[DIRS.UP,DIRS.DOWN,DIRS.LEFT,DIRS.RIGHT]){const nx=x+d.dx,ny=y+d.dy;if(nx>=0&&nx<COLS&&ny>=0&&ny<ROWS)nb.push(nx+","+ny);}return nb;}
+
+  function selectTarget(rabbit,state){
+    const nbrs=rabbit.isFloorRabbit?getFloorNbrs(rabbit.bedKey):(bedNbrs.get(rabbit.bedKey)||[]);
+    if(nbrs.length===0)return null;const head=state.snake[0],bd=bfsFromSnake(bedCells,head);
+    const dts=bd.get(rabbit.bedKey)||99,dt=3+rabbit.personality.skittishness*2;let cands;
+    if(dts<=dt)cands=nbrs.map(b=>({bed:b,score:fleeScore(b,rabbit,bd,state.rabbits)}));
+    else cands=nbrs.map(b=>({bed:b,score:roamScore(b,rabbit,state.rabbits)}));
+    cands.sort((a,b)=>b.score-a.score);return weightedPick(cands.slice(0,Math.min(2,cands.length)));
+  }
+
+  function startJump(rabbit,targetKey){rabbit.targetBedKey=targetKey;rabbit.prevBedKey=rabbit.bedKey;rabbit.animProgress=0;rabbit.animDuration=300/rabbit.personality.speed/rabbitSpeedMul();rabbit.jumping=true;rabbit.jumpOffset=0;}
+  function finishJump(rabbit){const[tx,ty]=rabbit.targetBedKey.split(",").map(Number);rabbit.vx=tx*CELL+CELL/2;rabbit.vy=ty*CELL+CELL/2;rabbit.bedKey=rabbit.targetBedKey;rabbit.targetBedKey=null;rabbit.jumping=false;rabbit.jumpOffset=0;const spd=rabbitSpeedMul();rabbit.jumpInterval=(2500+rabbit.personality.boldness*1500+(Math.random()-0.5)*1000)/spd;rabbit.jumpTimer=rabbit.jumpInterval;}
+  function easeInOutQuad(t){return t<0.5?2*t*t:-1+(4-2*t)*t;}
+  function lerp(a,b,t){return a+(b-a)*t;}
+
+  function updateRabbits(state,dt){
+    const spd = rabbitSpeedMul();
+    for(let i=state.rabbits.length-1;i>=0;i--){const r=state.rabbits[i];
+      if(r.jumping){r.animProgress+=dt/r.animDuration;if(r.animProgress>=1){finishJump(r);continue;}const[px,py]=(r.prevBedKey||r.bedKey).split(",").map(Number);const[tx,ty]=r.targetBedKey.split(",").map(Number);const t=easeInOutQuad(r.animProgress);r.vx=lerp(px*CELL+CELL/2,tx*CELL+CELL/2,t);r.vy=lerp(py*CELL+CELL/2,ty*CELL+CELL/2,t);r.jumpOffset=Math.sin(t*Math.PI)*16;continue;}
+      r.jumpTimer-=dt;if(r.freezeTimer>0){r.freezeTimer-=dt;if(r.freezeTimer>0)continue;}
+      r.carrotEatTimer-=dt;
+      if(r.carrotEatTimer<=0&&!r.eatingCarrot){r.eatingCarrot=true;const[ec,er]=r.bedKey.split(",").map(Number);if((er*13+ec*7)%5<2)state.eatenCarrots.add(r.bedKey);r.carrotEatTimer=800;}
+      if(r.eatingCarrot){if(r.carrotEatTimer<=0){r.eatingCarrot=false;r.carrotEatTimer=2000+Math.random()*3000;}continue;}
+      const head=state.snake[0],[rbx,rby]=r.bedKey.split(",").map(Number);
+      const dth=Math.abs(rbx-head.x)+Math.abs(rby-head.y);
+      if(dth<=1&&Math.random()<0.15){r.freezeTimer=500;continue;}
+      if(r.jumpTimer<=0){const tg=selectTarget(r,state);if(tg&&tg!==r.bedKey)startJump(r,tg);else r.jumpTimer=r.jumpInterval;}
     }
   }
-
-  function respawnRabbit(state) {
-    const occupied = new Set(state.rabbits.map(r => r.bedKey));
-    const free = bedCells.filter(k => !occupied.has(k));
-    if (free.length > 0) {
-      state.rabbits.push(makeRabbit(free[Math.floor(Math.random() * free.length)]));
-    } else {
-      // No free BED cells - try spawning on FLOOR
-      const head = state.snake[0];
-      let tries = 0;
-      while (tries < 20) {
-        const rx = 2 + Math.floor(Math.random() * (COLS - 4));
-        const ry = 2 + Math.floor(Math.random() * (ROWS - 4));
-        if (state.maze[ry][rx] === FLOOR && (Math.abs(ry - head.y) + Math.abs(rx - head.x)) > 5) {
-          const key = rx + "," + ry;
-          if (!occupied.has(key)) {
-            state.rabbits.push(makeFloorRabbit(key));
-            return;
-          }
-        }
-        tries++;
-      }
-    }
-  }
-
-  function weightedPick(candidates) {
-    if (candidates.length === 0) return null;
-    if (candidates.length === 1) return candidates[0].bed;
-    const total = candidates.reduce((s, c) => s + Math.max(0.01, c.score), 0);
-    let r = Math.random() * total;
-    for (const c of candidates) {
-      r -= Math.max(0.01, c.score);
-      if (r <= 0) return c.bed;
-    }
-    return candidates[candidates.length - 1].bed;
-  }
-
-  function fleeScore(bedKey, rabbit, bedDist, rabbits) {
-    let score = (bedDist.get(bedKey) || 0) * 2;
-    if (Math.random() < 0.2) score += (Math.random() - 0.5) * 10;
-    if (rabbits.some(r => r.bedKey === bedKey && r !== rabbit)) score -= 3;
-    if (bedKey === rabbit.prevBedKey) score -= 5;
-    return score;
-  }
-
-  function roamScore(bedKey, rabbit, rabbits) {
-    let score = 0;
-    if (bedKey === rabbit.prevBedKey) score -= 0.4;
-    if (rabbits.some(r => r.bedKey === bedKey && r !== rabbit)) score -= 0.5;
-    // R2: carrot affinity — prefer cells with uneaten carrots
-    const [c, r] = bedKey.split(",").map(Number);
-    if ((r * 13 + c * 7) % 5 < 2) {
-      score += 0.35;
-      if (game && game.eatenCarrots && !game.eatenCarrots.has(bedKey)) score += 0.2;
-    }
-    score += (Math.random() - 0.5) * 0.8;
-    return score;
-  }
-
-  function getFloorNbrs(key) {
-    const [x, y] = key.split(",").map(Number);
-    const nbrs = [];
-    for (const d of [DIRS.UP, DIRS.DOWN, DIRS.LEFT, DIRS.RIGHT]) {
-      const nx = x + d.dx, ny = y + d.dy;
-      if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS) {
-        nbrs.push(nx + "," + ny);
-      }
-    }
-    return nbrs;
-  }
-
-  function selectTarget(rabbit, state) {
-    const nbrs = rabbit.isFloorRabbit 
-      ? getFloorNbrs(rabbit.bedKey) 
-      : (bedNbrs.get(rabbit.bedKey) || []);
-    if (nbrs.length === 0) return null;
-    const head = state.snake[0];
-    const bedDist = bfsFromSnake(bedCells, head);
-    const distToSnake = bedDist.get(rabbit.bedKey) || 99;
-    const dangerThresh = 3 + rabbit.personality.skittishness * 2;
-    let candidates;
-    if (distToSnake <= dangerThresh) {
-      candidates = nbrs.map(b => ({ bed: b, score: fleeScore(b, rabbit, bedDist, state.rabbits) }));
-    } else {
-      candidates = nbrs.map(b => ({ bed: b, score: roamScore(b, rabbit, state.rabbits) }));
-    }
-    candidates.sort((a, b) => b.score - a.score);
-    return weightedPick(candidates.slice(0, Math.min(2, candidates.length)));
-  }
-
-  function startJump(rabbit, targetKey) {
-    rabbit.targetBedKey = targetKey;
-    rabbit.prevBedKey = rabbit.bedKey;
-    rabbit.animProgress = 0;
-    rabbit.animDuration = 300 / rabbit.personality.speed;
-    rabbit.jumping = true;
-    rabbit.jumpOffset = 0;
-  }
-
-  function finishJump(rabbit) {
-    const [tx, ty] = rabbit.targetBedKey.split(",").map(Number);
-    rabbit.vx = tx * CELL + CELL / 2;
-    rabbit.vy = ty * CELL + CELL / 2;
-    rabbit.bedKey = rabbit.targetBedKey;
-    rabbit.targetBedKey = null;
-    rabbit.jumping = false;
-    rabbit.jumpOffset = 0;
-    rabbit.jumpInterval = 2500 + rabbit.personality.boldness * 1500 + (Math.random() - 0.5) * 1000;
-    rabbit.jumpTimer = rabbit.jumpInterval;
-  }
-
-  function updateRabbits(state, dt) {
-    for (let i = state.rabbits.length - 1; i >= 0; i--) {
-      const r = state.rabbits[i];
-      if (r.jumping) {
-        r.animProgress += dt / r.animDuration;
-        if (r.animProgress >= 1) { finishJump(r); continue; }
-        const [px, py] = (r.prevBedKey || r.bedKey).split(",").map(Number);
-        const [tx, ty] = r.targetBedKey.split(",").map(Number);
-        const t = easeInOutQuad(r.animProgress);
-        r.vx = lerp(px * CELL + CELL / 2, tx * CELL + CELL / 2, t);
-        r.vy = lerp(py * CELL + CELL / 2, ty * CELL + CELL / 2, t);
-        r.jumpOffset = Math.sin(t * Math.PI) * 16;
-        continue;
-      }
-      r.jumpTimer -= dt;
-      if (r.freezeTimer > 0) {
-        r.freezeTimer -= dt;
-        if (r.freezeTimer > 0) continue;
-      }
-      // Carrot eating behavior
-      r.carrotEatTimer -= dt;
-      if (r.carrotEatTimer <= 0 && !r.eatingCarrot) {
-        r.eatingCarrot = true;
-        // R3: mark carrot at current position as eaten
-        const [ec, er] = r.bedKey.split(",").map(Number);
-        if ((er * 13 + ec * 7) % 5 < 2) {
-          state.eatenCarrots.add(r.bedKey);
-        }
-        r.carrotEatTimer = 800; // eat animation duration
-      }
-      if (r.eatingCarrot) {
-        if (r.carrotEatTimer <= 0) {
-          r.eatingCarrot = false;
-          r.carrotEatTimer = 2000 + Math.random() * 3000;
-        }
-        continue; // don't move while eating
-      }
-      const head = state.snake[0];
-      const [rbx, rby] = r.bedKey.split(",").map(Number);
-      const distToHead = Math.abs(rbx - head.x) + Math.abs(rby - head.y);
-      if (distToHead <= 1 && Math.random() < 0.15) {
-        r.freezeTimer = 500;
-        continue;
-      }
-      if (r.jumpTimer <= 0) {
-        const target = selectTarget(r, state);
-        if (target && target !== r.bedKey) startJump(r, target);
-        else r.jumpTimer = r.jumpInterval;
-      }
-    }
-  }
-
-  function easeInOutQuad(t) { return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; }
-  function lerp(a, b, t) { return a + (b - a) * t; }
 
   // ---------- Snake update ----------
-  function updateSnake(state) {
-    state.dir = { dx: state.nextDir.dx, dy: state.nextDir.dy };
-    if (state.dir.dx === 0 && state.dir.dy === 0) return true;
-    const head = state.snake[0];
-    const nh = { x: head.x + state.dir.dx, y: head.y + state.dir.dy };
-
-    // Bounds + wall (BED is impassable)
-    if (nh.x < 0 || nh.x >= COLS || nh.y < 0 || nh.y >= ROWS) return false;
-    if (state.maze[nh.y][nh.x] === BED) return false;
-
-    // Self collision
-    for (let i = 0; i < state.snake.length; i++) {
-      if (state.snake[i].x === nh.x && state.snake[i].y === nh.y) return false;
-    }
-
-    state.snake.unshift(nh);
-    let ate = false;
-
-    // Rabbit collision: 
-    // - Floor rabbits: eat when head reaches same cell
-    // - Bed rabbits: eat when head is adjacent (distance <= 1)
-    for (let i = state.rabbits.length - 1; i >= 0; i--) {
-      const r = state.rabbits[i];
-      if (!r.jumping) {
-        const [bx, by] = r.bedKey.split(",").map(Number);
-        const dist = Math.abs(nh.x - bx) + Math.abs(nh.y - by);
-        let eatDist = r.isFloorRabbit ? 0 : 1;
-        if (dist <= eatDist) {
-          emitParticles(bx * CELL + CELL / 2, by * CELL + CELL / 2, "#ffffff", 12, 3, 500);
-          emitParticles(bx * CELL + CELL / 2, by * CELL + CELL / 2, "#f7931e", 6, 2, 400);
-          doShake(4);
-          state.rabbits.splice(i, 1);
-          state.score += 10;
-          state.rabbitsEaten++;
-          state.growPending++;
-          ate = true;
-
-          // Level progression: every RABBITS_PER_LEVEL rabbits eaten = new level
-          if (state.rabbitsEaten % RABBITS_PER_LEVEL === 0 && state.level < 10) {
-            advanceLevel(state);
-          }
-          break;
-        }
+  function updateSnake(state){
+    state.dir={dx:state.nextDir.dx,dy:state.nextDir.dy};if(state.dir.dx===0&&state.dir.dy===0)return true;
+    const head=state.snake[0],nh={x:head.x+state.dir.dx,y:head.y+state.dir.dy};
+    // Handle wall_reverse buff: swap floor and bed for collision
+    const wallRev = !!state.activeBuffs.wall_reverse;
+    if (wallRev) {
+      if (Math.random() < 0.15) {
+        const wdirs = [DIRS.UP, DIRS.DOWN, DIRS.LEFT, DIRS.RIGHT];
+        const wd = wdirs[Math.floor(Math.random() * 4)];
+        nh.x = nh.x + wd.dx;
+        nh.y = nh.y + wd.dy;
+      }
+      nh.x=((nh.x%COLS)+COLS)%COLS;nh.y=((nh.y%ROWS)+ROWS)%ROWS;
+      if (state.maze[nh.y][nh.x] === FLOOR) return false;
+    } else {
+      nh.x=((nh.x%COLS)+COLS)%COLS;nh.y=((nh.y%ROWS)+ROWS)%ROWS;
+      if (!state.activeBuffs.pass_through) {
+        if(state.maze[nh.y][nh.x]===BED)return false;
       }
     }
-
-    if (state.growPending > 0) state.growPending--;
-    else state.snake.pop();
-
-    if (ate && state.rabbits.length < 3) state.spawnTimer = 3000;
-    return true;
+    for(let i=0;i<state.snake.length;i++)if(state.snake[i].x===nh.x&&state.snake[i].y===nh.y)return false;
+    state.snake.unshift(nh);let ate=false;
+    for(let i=state.rabbits.length-1;i>=0;i--){const r=state.rabbits[i];
+      if(!r.jumping){const[bx,by]=r.bedKey.split(",").map(Number);const dist=Math.abs(nh.x-bx)+Math.abs(nh.y-by);
+        let ed=r.isFloorRabbit?0:1;if(dist<=ed){emitParticles(bx*CELL+CELL/2,by*CELL+CELL/2,"#ffffff",12,3,500);emitParticles(bx*CELL+CELL/2,by*CELL+CELL/2,"#f7931e",6,2,400);doShake(4);state.rabbits.splice(i,1);state.score+=10;state.rabbitsEaten++;state.levelRabbitsEaten++;playSFX('eat');state.growPending++;ate=true;
+          if(state.rabbitsEaten%RABBITS_PER_LEVEL===0&&state.level<10)advanceLevel(state);break;}}}
+    if(state.growPending>0)state.growPending--;else state.snake.pop();
+    checkBonusCollisions(state);
+    const maxRabbits = maxRabbitsForLevel(state.level);
+    if(ate&&state.rabbits.length<maxRabbits)state.spawnTimer=3000;return true;
   }
 
-  function advanceLevel(state) {
-    state.level++;
-    // Generate new maze for new level
-    const newMaze = generateLevel(state.level);
-    state.maze = newMaze;
-    // Find safe start position
-    const ss = findSafeSnakeStart(newMaze);
-    state.snake = [{x:ss.x, y:ss.y}, {x:ss.x-1, y:ss.y}, {x:ss.x-2, y:ss.y}];
-    state.dir = {dx:0, dy:0};
-    state.nextDir = {dx:0, dy:0};
-    state.growPending = 0;
-    state.accumulator = 0;
-    state.eatenCarrots = new Set(); // R3: fresh carrots for new level
-    // R6: reset floor rabbit flags for non-Level-1 levels
-    for (let i = 0; i < state.rabbits.length; i++) {
-      state.rabbits[i].isFloorRabbit = false;
-    }
-    // Rebuild bed graph for new maze
-    buildBedGraphFromMaze(newMaze);
-    // Move rabbits to random available BED positions
-    const shuffled = [...bedCells].sort(() => Math.random() - 0.5);
-    for (let i = 0; i < state.rabbits.length; i++) {
-      if (i < shuffled.length) {
-        const [bx, by] = shuffled[i].split(",").map(Number);
-        state.rabbits[i].bedKey = shuffled[i];
-        state.rabbits[i].prevBedKey = null;
-        state.rabbits[i].vx = bx * CELL + CELL / 2;
-        state.rabbits[i].vy = by * CELL + CELL / 2;
-        state.rabbits[i].jumping = false;
-      }
+  function advanceLevel(state){state.level++;state.levelRabbitsEaten=0;playSFX('levelUp');
+    const nm=generateLevel(state.level);state.maze=nm;const ss=findSafeSnakeStart(nm);
+    state.snake=[{x:ss.x,y:ss.y},{x:ss.x-1,y:ss.y},{x:ss.x-2,y:ss.y}];state.dir={dx:0,dy:0};state.nextDir={dx:0,dy:0};
+    state.growPending=0;state.accumulator=0;state.eatenCarrots=new Set();
+    const newRabbitCount = maxRabbitsForLevel(state.level);
+    for(let i=state.rabbits.length-1;i>=newRabbitCount;i--)state.rabbits.splice(i,1);
+    for(let i=0;i<state.rabbits.length;i++)state.rabbits[i].isFloorRabbit=false;
+    buildBedGraphFromMaze(nm);
+    if (state.rabbits.length < newRabbitCount) {
+      const sh=[...bedCells].sort(()=>Math.random()-0.5);
+      for(let i=state.rabbits.length;i<Math.min(newRabbitCount,sh.length);i++)state.rabbits.push(makeRabbit(sh[i]));
+    } else {
+      const sh=[...bedCells].sort(()=>Math.random()-0.5);
+      for(let i=0;i<state.rabbits.length;i++){if(i<sh.length){const[bx,by]=sh[i].split(",").map(Number);state.rabbits[i].bedKey=sh[i];state.rabbits[i].prevBedKey=null;state.rabbits[i].vx=bx*CELL+CELL/2;state.rabbits[i].vy=by*CELL+CELL/2;state.rabbits[i].jumping=false;}}
     }
     doShake(6);
   }
 
   // ---------- Input ----------
-  const keyMap = {
-    ArrowUp: "UP", ArrowDown: "DOWN", ArrowLeft: "LEFT", ArrowRight: "RIGHT",
-    w: "UP", W: "UP", s: "DOWN", S: "DOWN", a: "LEFT", A: "LEFT", d: "RIGHT", D: "RIGHT"
-  };
-
-  function handleKeyDown(e) {
-    if (!game) return;
-    if (!game.alive && (e.key === "Enter" || e.key === " " || e.key === "Space")) {
-      e.preventDefault();
-      startGame();
-      return;
-    }
-    const dirName = keyMap[e.key];
-    if (dirName) {
-      e.preventDefault();
-      const d = DIRS[dirName];
-      if (game.nextDir.dx !== -d.dx || game.nextDir.dy !== -d.dy) {
-        game.nextDir = d;
-        if (game.dir.dx === 0 && game.dir.dy === 0) {
-          game.dir = {dx: d.dx, dy: d.dy};
-        }
-      }
-    }
+  const keyMap={ArrowUp:"UP",ArrowDown:"DOWN",ArrowLeft:"LEFT",ArrowRight:"RIGHT",w:"UP",W:"UP",s:"DOWN",S:"DOWN",a:"LEFT",A:"LEFT",d:"RIGHT",D:"RIGHT"};
+  function handleKeyDown(e){
+    if(e.key==="Escape"||e.key==="Esc"){e.preventDefault();
+      if(uiFocus){if(document.getElementById("settings-menu").classList.contains("visible")||document.getElementById("hall-of-fame").classList.contains("visible")||document.getElementById("instructions").classList.contains("visible")){goBackFromOverlay();}else if(document.getElementById("pause-menu").classList.contains("visible")){resumeGame();}return;}
+      if(!game||!game.alive)return;
+      if(game.paused){resumeGame();}else{game.paused=true;stopBGM();showPauseMenu();}return;}
+    if(uiFocus)return;
+    if((!game||!game.alive)&&document.getElementById("main-menu").classList.contains("visible")){
+      if(e.key==="Enter"||e.key===" "){e.preventDefault();initAudio();startGame();return;}
+      if(e.key==="s"||e.key==="S"){e.preventDefault();showSettings(false);return;}
+      if(e.key==="h"||e.key==="H"){e.preventDefault();showHallOfFame(false);return;}
+      if(e.key==="i"||e.key==="I"){e.preventDefault();showInstructions(false);return;}return;}
+    if(!game)return;
+    if(!game.alive&&(e.key==="Enter"||e.key===" "||e.key==="Space")){e.preventDefault();initAudio();startGame();return;}
+    const dn=keyMap[e.key];if(dn){e.preventDefault();const d=DIRS[dn];if(game.nextDir.dx!==-d.dx||game.nextDir.dy!==-d.dy){game.nextDir=d;if(game.dir.dx===0&&game.dir.dy===0)game.dir={dx:d.dx,dy:d.dy};}}
   }
+  document.addEventListener("keydown",handleKeyDown);
 
-  document.addEventListener("keydown", handleKeyDown);
-  document.getElementById("restart-btn").addEventListener("click", startGame);
+  // ---------- Button handlers ----------
+  document.getElementById("btn-resume").addEventListener("click",resumeGame);
+  document.getElementById("btn-pause-settings").addEventListener("click",function(){showSettings(true);});
+  document.getElementById("btn-pause-hof").addEventListener("click",function(){showHallOfFame(true);});
+  document.getElementById("btn-pause-instructions").addEventListener("click",function(){showInstructions(true);});
+  document.getElementById("btn-quit").addEventListener("click",function(){hideAllOverlays();showMainMenu();});
+  document.getElementById("btn-settings-back").addEventListener("click",goBackFromOverlay);
+  document.getElementById("btn-hof-back").addEventListener("click",goBackFromOverlay);
+  document.getElementById("btn-instructions-back").addEventListener("click",goBackFromOverlay);
+  document.getElementById("btn-continue").addEventListener("click",function(){game.lives--;restartLevel();});
+  document.getElementById("btn-continue-quit").addEventListener("click",function(){game.lives=0;fullGameOver();});
+  document.getElementById("restart-btn").addEventListener("click",function(){initAudio();startGame();});
+  canvas.addEventListener("click",function(){if(document.getElementById("main-menu").classList.contains("visible")){initAudio();startGame();}});
+  document.getElementById("set-music-vol").addEventListener("input",function(){const v=parseInt(this.value);settings.musicVol=v;document.getElementById("val-music-vol").textContent=v;setMusicVolume(v);saveSettings(settings);});
+  document.getElementById("set-sfx-vol").addEventListener("input",function(){const v=parseInt(this.value);settings.sfxVol=v;document.getElementById("val-sfx-vol").textContent=v;setSFXVolume(v);saveSettings(settings);});
+  document.getElementById("btn-diff-normal").addEventListener("click",function(){settings.difficulty="normal";updateSettingsUI();saveSettings(settings);});
+  document.getElementById("btn-diff-hard").addEventListener("click",function(){settings.difficulty="hardcore";updateSettingsUI();saveSettings(settings);});
+  document.getElementById("btn-skin-kawaii").addEventListener("click",function(){settings.skin="kawaii";SKIN.current="kawaii";updateSettingsUI();saveSettings(settings);});
+  document.getElementById("btn-skin-nes").addEventListener("click",function(){settings.skin="nes";SKIN.current="nes";updateSettingsUI();saveSettings(settings);});
+  document.getElementById("hof-name-input").addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();const name=this.value.trim()||"AAA";addScore(name,game.score,game.level);this.style.display="none";document.getElementById("new-hs-msg").style.display="none";}});
 
   // ---------- Drawing ----------
   let animTime = 0;
+  function drawMaze(){for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const tile=game?game.maze[r][c]:BED;const x=c*CELL,y=r*CELL;if(tile===BED){ctx.fillStyle=(r+c)%2===0?"#4a7c3f":"#3d5a2e";ctx.fillRect(x,y,CELL,CELL);ctx.fillStyle="#1b3a0f";ctx.fillRect(x,y,CELL,2);ctx.fillRect(x,y,2,CELL);if((r*7+c*5)%3===0){ctx.fillStyle="#4caf50";ctx.fillRect(x+8,y+12,5,5);ctx.fillRect(x+18,y+6,4,4);}if((r*13+c*7)%5<2&&!(game&&game.eatenCarrots&&game.eatenCarrots.has(c+","+r))){drawCarrot(x+CELL/2,y+CELL/2);}}else{ctx.fillStyle=(r+c)%2===0?"#4a3520":"#3f2d1a";ctx.fillRect(x,y,CELL,CELL);ctx.fillStyle="rgba(0,0,0,0.1)";ctx.fillRect(x,y,CELL,1);}}}
 
-  function drawMaze() {
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        const tile = game ? game.maze[r][c] : BED; // initial draw defaults
-        const x = c * CELL, y = r * CELL;
-        if (tile === BED) {
-          // Garden bed / wall — GREEN (bushes)
-          ctx.fillStyle = (r + c) % 2 === 0 ? "#4a7c3f" : "#3d5a2e"; // R1: lightened for contrast
-          ctx.fillRect(x, y, CELL, CELL);
-          // Dark border
-          ctx.fillStyle = "#1b3a0f";
-          ctx.fillRect(x, y, CELL, 2);
-          ctx.fillRect(x, y, 2, CELL);
-          // Bush texture dots
-          if ((r * 7 + c * 5) % 3 === 0) {
-            ctx.fillStyle = "#4caf50";
-            ctx.fillRect(x + 8, y + 12, 5, 5);
-            ctx.fillRect(x + 18, y + 6, 4, 4);
-          }
-          // Draw carrot on some beds (about 30% chance based on position)
-          // R3: skip eaten carrots
-          if ((r * 13 + c * 7) % 5 < 2 && !(game && game.eatenCarrots && game.eatenCarrots.has(c + "," + r))) {
-            drawCarrot(x + CELL / 2, y + CELL / 2);
-          }
-        } else {
-          // Path — BROWN
-          ctx.fillStyle = (r + c) % 2 === 0 ? "#4a3520" : "#3f2d1a";
-          ctx.fillRect(x, y, CELL, CELL);
-          // Subtle edge detail
-          ctx.fillStyle = "rgba(0,0,0,0.1)";
-          ctx.fillRect(x, y, CELL, 1);
-        }
-      }
-    }
-  }
+  function drawCarrot(cx,cy){animTime++;const sway=Math.sin(animTime*0.05+cx*0.1)*1.2;const rx=Math.floor(cx+sway),ry=Math.floor(cy);ctx.fillStyle="#f7931e";ctx.fillRect(rx-4,ry-4,8,14);ctx.fillRect(rx-3,ry+10,6,6);ctx.fillRect(rx-1,ry+16,2,3);ctx.fillStyle="#4caf50";ctx.fillRect(rx-5,ry-8,3,5);ctx.fillRect(rx+2,ry-8,3,5);ctx.fillRect(rx-1,ry-10,2,7);}
 
-  function drawCarrot(cx, cy) {
-    animTime++;
-    const sway = Math.sin(animTime * 0.05 + cx * 0.1) * 1.2;
-    const rx = Math.floor(cx + sway), ry = Math.floor(cy);
-    // Carrot body
-    ctx.fillStyle = "#f7931e";
-    ctx.fillRect(rx - 4, ry - 4, 8, 14);
-    ctx.fillRect(rx - 3, ry + 10, 6, 6);
-    ctx.fillRect(rx - 1, ry + 16, 2, 3);
-    // Green top
-    ctx.fillStyle = "#4caf50";
-    ctx.fillRect(rx - 5, ry - 8, 3, 5);
-    ctx.fillRect(rx + 2, ry - 8, 3, 5);
-    ctx.fillRect(rx - 1, ry - 10, 2, 7);
-  }
-
-  function drawSnake() {
-    const segs = game.snake;
-    const len = segs.length;
-    for (let i = len - 1; i >= 0; i--) {
-      const seg = segs[i];
-      const x = seg.x * CELL, y = seg.y * CELL;
-      const isHead = i === 0;
-      const fade = 1 - (i / (len + 5)) * 0.35;
-      const g = Math.floor(0xe6 * fade);
-      const b = Math.floor(0x76 * fade);
-      // Outline
-      ctx.fillStyle = "#1b3a0f";
-      ctx.fillRect(x, y, CELL, CELL);
-      // Body
-      ctx.fillStyle = isHead ? "#00e676" : "rgb(0," + g + "," + b + ")";
-      ctx.fillRect(x + 2, y + 2, CELL - 4, CELL - 4);
-      if (isHead) {
-        // Eyes
-        ctx.fillStyle = "#1b3a0f";
-        let ex1, ey1, ex2, ey2;
-        const d = game.dir;
-        if (d.dx === 1) { ex1 = x + 20; ey1 = y + 6; ex2 = x + 20; ey2 = y + 18; }
-        else if (d.dx === -1) { ex1 = x + 5; ey1 = y + 6; ex2 = x + 5; ey2 = y + 18; }
-        else if (d.dy === -1) { ex1 = x + 8; ey1 = y + 5; ex2 = x + 18; ey2 = y + 5; }
-        else { ex1 = x + 8; ey1 = y + 20; ex2 = x + 18; ey2 = y + 20; }
-        ctx.fillRect(ex1, ey1, 5, 5);
-        ctx.fillRect(ex2, ey2, 5, 5);
-        // Tongue flicker
-        if (Math.floor(animTime / 10) % 2 === 0) {
-          ctx.fillStyle = "#ff5252";
-          const tx = x + CELL / 2 + d.dx * 12, ty = y + CELL / 2 + d.dy * 12;
-          ctx.fillRect(tx - 1, ty - 1, 4, 4);
-        }
-      }
-    }
-  }
-
-  function drawRabbit(r) {
-    const x = Math.floor(r.vx), y = Math.floor(r.vy) - Math.floor(r.jumpOffset || 0);
-    // Shadow when jumping
-    if (r.jumping && r.jumpOffset > 2) {
-      ctx.fillStyle = "rgba(0,0,0,0.25)";
-      ctx.fillRect(x - 7, Math.floor(r.vy) - 1, 14, 4);
-    }
-    // Body
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(x - 9, y - 9, 18, 18);
-    // Pink ears
-    ctx.fillStyle = "#ffcdd2";
-    ctx.fillRect(x - 7, y - 18, 4, 10);
-    ctx.fillRect(x + 3, y - 18, 4, 10);
-    // Inner ear
-    ctx.fillStyle = "#f48fb1";
-    ctx.fillRect(x - 6, y - 16, 2, 5);
-    ctx.fillRect(x + 4, y - 16, 2, 5);
-    // Eyes
-    ctx.fillStyle = "#212121";
-    ctx.fillRect(x - 4, y - 3, 2, 2);
-    ctx.fillRect(x + 3, y - 3, 2, 2);
-    // Nose
-    ctx.fillStyle = "#f48fb1";
-    ctx.fillRect(x - 1, y + 1, 2, 2);
-    // Carrot eating visual
-    if (r.eatingCarrot) {
-      ctx.fillStyle = "#f7931e";
-      ctx.fillRect(x + 5, y - 4, 5, 3);
-      ctx.fillStyle = "#4caf50";
-      ctx.fillRect(x + 5, y - 7, 3, 3);
-    }
-    // Frozen overlay
-    if (r.freezeTimer > 0) {
-      ctx.fillStyle = "rgba(100,180,255,0.5)";
-      ctx.fillRect(x - 10, y - 18, 20, 20);
-    }
-  }
-
-  function drawHUD() {
-    const sx = 10, sy = 6;
-    ctx.fillStyle = "rgba(0,0,0,0.55)";
-    ctx.fillRect(sx - 4, sy - 4, 240, 50);
-    ctx.strokeStyle = "#8d6e4c";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(sx - 4, sy - 4, 240, 50);
-    // Score
-    ctx.fillStyle = "#a5d6a7";
-    ctx.font = "14px monospace";
-    ctx.textBaseline = "top";
-    ctx.fillText("SCORE", sx, sy);
-    ctx.fillStyle = "#ffd54f";
-    ctx.font = "bold 24px monospace";
-    ctx.fillText(String(game.score).padStart(4, "0"), sx, sy + 16);
-    // Level
-    ctx.fillStyle = "#81c784";
-    ctx.font = "12px monospace";
-    ctx.fillText("LVL " + game.level, sx + 130, sy + 2);
-    // Progress bar
-    const progress = (game.rabbitsEaten % RABBITS_PER_LEVEL) / RABBITS_PER_LEVEL;
-    ctx.fillStyle = "rgba(255,255,255,0.15)";
-    ctx.fillRect(sx + 130, sy + 18, 90, 8);
-    ctx.fillStyle = progress > 0 ? "#81c784" : "rgba(255,255,255,0.1)";
-    ctx.fillRect(sx + 130, sy + 18, Math.floor(90 * progress), 8);
-    ctx.strokeStyle = "rgba(255,255,255,0.3)";
-    ctx.strokeRect(sx + 130, sy + 18, 90, 8);
-    // Bunny count
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "11px monospace";
-    ctx.fillText("BUNNY " + game.rabbits.length, sx + 130, sy + 32);
-    // High score
-    ctx.fillStyle = "rgba(255,255,255,0.5)";
-    ctx.font = "11px monospace";
-    ctx.fillText("HI " + String(game.highScore).padStart(4, "0"), sx, sy + 44);
-  }
+  function drawHUD(){const sx=10,sy=6;ctx.fillStyle="rgba(0,0,0,0.55)";ctx.fillRect(sx-4,sy-4,270,50);ctx.strokeStyle="#8d6e4c";ctx.lineWidth=1;ctx.strokeRect(sx-4,sy-4,270,50);ctx.fillStyle="#a5d6a7";ctx.font="14px monospace";ctx.textBaseline="top";ctx.fillText("SCORE",sx,sy);ctx.fillStyle="#ffd54f";ctx.font="bold 24px monospace";ctx.fillText(String(game.score).padStart(4,"0"),sx,sy+16);ctx.fillStyle="#81c784";ctx.font="12px monospace";ctx.fillText("LVL "+game.level,sx+130,sy+2);ctx.fillStyle="#ffffff";ctx.font="12px monospace";ctx.fillText("EATEN "+game.levelRabbitsEaten+"/"+RABBITS_PER_LEVEL,sx+120,sy+20);const prog=game.levelRabbitsEaten/RABBITS_PER_LEVEL;ctx.fillStyle="rgba(255,255,255,0.15)";ctx.fillRect(sx+120,sy+32,96,8);ctx.fillStyle=prog>0?"#81c784":"rgba(255,255,255,0.1)";ctx.fillRect(sx+120,sy+32,Math.floor(96*prog),8);ctx.strokeStyle="rgba(255,255,255,0.3)";ctx.strokeRect(sx+120,sy+32,96,8);ctx.fillStyle="rgba(255,255,255,0.6)";ctx.font="10px monospace";ctx.fillText("BUNNY "+game.rabbits.length+"/"+maxRabbitsForLevel(game.level),sx+120,sy+46);ctx.fillStyle="rgba(255,255,255,0.5)";ctx.font="11px monospace";ctx.fillText("HI "+String(game.highScore).padStart(4,"0"),sx,sy+44);let hearts="";for(let i=0;i<game.lives;i++)hearts+="\u2665";ctx.fillStyle="#ff5252";ctx.font="14px monospace";ctx.fillText(hearts,sx+230,sy+2);}
 
   // ---------- Game loop ----------
-  function gameLoop(timestamp) {
-    if (!game) return;
-    requestAnimationFrame(gameLoop);
+  let rafHandle = null;
+  function gameLoop(timestamp){
+    if(!game){rafHandle=requestAnimationFrame(gameLoop);return;}
+    if(!game.alive){render();rafHandle=requestAnimationFrame(gameLoop);return;}
+    if(game.paused){render();rafHandle=requestAnimationFrame(gameLoop);return;}
+    if(game.lastTimestamp===0)game.lastTimestamp=timestamp;
+    let dt=timestamp-game.lastTimestamp;game.lastTimestamp=timestamp;if(dt>200)dt=200;
+    game.accumulator+=dt;updateParticles(dt);updateShake();
 
-    if (!game.alive) { render(); return; }
+    let speedMul = 1;
+    if (game.activeBuffs.speed_up) speedMul = 0.7;
+    else if (game.activeBuffs.slow_down) speedMul = 1.5;
+    const tickMs = currentTickMs(game.level, speedMul);
 
-    if (game.lastTimestamp === 0) game.lastTimestamp = timestamp;
-    let dt = timestamp - game.lastTimestamp;
-    game.lastTimestamp = timestamp;
-    if (dt > 200) dt = 200;
-
-    game.accumulator += dt;
-    updateParticles(dt);
-    updateShake();
-
-    const tickMs = currentTickMs(game.level);
-    while (game.accumulator >= tickMs) {
-      game.accumulator -= tickMs;
-
-      if (game.rabbits.length < 3) {
-        game.spawnTimer -= tickMs;
-        if (game.spawnTimer <= 0) {
-          respawnRabbit(game);
-          game.spawnTimer = game.rabbits.length < 3 ? 3000 : 0;
-        }
-      }
-
-      updateRabbits(game, tickMs);
-
-      if (!updateSnake(game)) {
-        gameOver();
-        return;
-      }
+    game.bonusSpawnTimer = (game.bonusSpawnTimer || 0) + dt;
+    if (game.bonusSpawnTimer >= BONUS_SPAWN_INTERVAL) {
+      game.bonusSpawnTimer -= BONUS_SPAWN_INTERVAL;
+      spawnBonus(game);
     }
+    updateBonuses(game, dt);
 
-    render();
+    while(game.accumulator>=tickMs){game.accumulator-=tickMs;
+      const maxR = maxRabbitsForLevel(game.level);
+      if(game.rabbits.length < maxR){game.spawnTimer-=tickMs;if(game.spawnTimer<=0){respawnRabbit(game);game.spawnTimer=game.rabbits.length<maxR?3000:0;}}
+      updateRabbits(game,tickMs);
+      if(!updateSnake(game)){handleDeath();return;}
+    }
+    render();rafHandle=requestAnimationFrame(gameLoop);
   }
 
-  function render() {
-    ctx.save();
-    const off = shakeOffset();
-    if (off.x || off.y) ctx.translate(off.x, off.y);
-    ctx.fillStyle = "#1b3a0f";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    drawMaze();
-    if (game) {
-      for (const r of game.rabbits) drawRabbit(r);
-      drawSnake();
-      drawHUD();
-      drawParticles();
-    }
-    ctx.restore();
-  }
+  function render(){ctx.save();const off=shakeOffset();if(off.x||off.y)ctx.translate(off.x,off.y);ctx.fillStyle="#1b3a0f";ctx.fillRect(0,0,canvas.width,canvas.height);drawMaze();if(game){drawBonuses();const sk=currentSkin();for(const r of game.rabbits)sk.drawRabbit(r);sk.drawSnake(game.snake,game.dir,animTime);drawHUD();drawBuffHUD();drawParticles();}ctx.restore();}
 
-  function gameOver() {
-    if (!game) return;
-    game.alive = false;
-    if (game.score > game.highScore) {
-      game.highScore = game.score;
-      localStorage.setItem("crmz_hi", String(game.highScore));
-    }
-    const head = game.snake[0];
-    const px = head.x * CELL + CELL / 2, py = head.y * CELL + CELL / 2;
-    emitParticles(px, py, "#00e676", 20, 4, 600);
-    emitParticles(px, py, "#ff5252", 10, 3, 400);
-    doShake(10);
+  function handleDeath(){if(!game)return;game.alive=false;stopBGM();playSFX('death');
+    if(game.score>game.highScore){game.highScore=game.score;try{localStorage.setItem(LS_KEYS.hi,String(game.highScore));}catch(e){}}
+    const head=game.snake[0],px=head.x*CELL+CELL/2,py=head.y*CELL+CELL/2;emitParticles(px,py,"#00e676",20,4,600);emitParticles(px,py,"#ff5252",10,3,400);doShake(10);
+    let frames=0;function deathAnim(){if(frames>20){if(game.lives>1)showContinueOverlay();else fullGameOver();return;}frames++;updateParticles(16);updateShake();render();requestAnimationFrame(deathAnim);}deathAnim();}
 
-    let frames = 0;
-    function deathAnim() {
-      if (frames > 20) {
-        document.getElementById("final-score").textContent = game.score;
-        document.getElementById("final-level").textContent = game.level;
-        document.getElementById("high-score").textContent = game.highScore;
-        document.getElementById("game-over").classList.add("visible");
-        return;
-      }
-      frames++;
-      updateParticles(16);
-      updateShake();
-      render();
-      requestAnimationFrame(deathAnim);
-    }
-    deathAnim();
-  }
+  function showContinueOverlay(){document.getElementById("continue-hearts").innerHTML='<span style="color:#ff5252">'+"\u2665".repeat(game.lives)+'</span><span style="color:rgba(255,82,82,0.3)">'+"\u2661".repeat(Math.max(0,3-game.lives))+'</span>';document.getElementById("continue-score").textContent=game.score;document.getElementById("continue-level").textContent=game.level;showOverlay("continue-menu");}
 
-  // ---------- Start ----------
-  function startGame() {
-    if (game && game.alive) return; // R4: guard against double game loop
-    document.getElementById("game-over").classList.remove("visible");
-    game = newGame();
-    // Rebuild bed graph from current game maze
-    buildBedGraphFromMaze(game.maze);
-    spawnInitialRabbits(game);
-    game.alive = true;
-    game.lastTimestamp = 0;
-    game.accumulator = 0;
-    animTime = 0;
-    particles = [];
-    requestAnimationFrame(gameLoop);
-  }
+  function fullGameOver(){const fs=document.getElementById("final-score"),fl=document.getElementById("final-level"),hs=document.getElementById("high-score"),nhm=document.getElementById("new-hs-msg"),her=document.getElementById("hof-entry-row");fs.textContent=game.score;fl.textContent=game.level;hs.textContent=game.highScore;const isNH=isHighScore(game.score);if(isNH){nhm.style.display="block";her.style.display="flex";document.getElementById("hof-name-input").value="";document.getElementById("hof-name-input").focus();}else{nhm.style.display="none";her.style.display="none";}showOverlay("game-over");}
+
+  function startGame(){if(game&&game.alive)return;hideAllOverlays();game=newGame();game.lives=3;buildBedGraphFromMaze(game.maze);spawnInitialRabbits(game);game.alive=true;game.lastTimestamp=0;game.paused=false;game.bonusesOnField=[];game.activeBuffs={};game.bonusSpawnTimer=0;initAudio();stopBGM();setTimeout(startBGM,100);game.accumulator=0;animTime=0;particles=[];if(!rafHandle)rafHandle=requestAnimationFrame(gameLoop);}
+
+  // ---------- Auto-pause ----------
+  window.addEventListener("blur",function(){if(game&&game.alive&&!game.paused){game.paused=true;stopBGM();showPauseMenu();}});
+  document.addEventListener("visibilitychange",function(){if(document.hidden&&game&&game.alive&&!game.paused){game.paused=true;stopBGM();showPauseMenu();}});
 
   // ---------- Init ----------
-  game = newGame();
-  game.alive = false;
-  ctx.fillStyle = "#1b3a0f";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  // Draw initial maze
-  (function drawInit() {
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        const tile = game.maze[r][c];
-        const x = c * CELL, y = r * CELL;
-        if (tile === BED) {
-          ctx.fillStyle = (r + c) % 2 === 0 ? "#4a7c3f" : "#3d5a2e"; // R1: lightened for contrast
-          ctx.fillRect(x, y, CELL, CELL);
-        } else {
-          ctx.fillStyle = (r + c) % 2 === 0 ? "#4a3520" : "#3f2d1a";
-          ctx.fillRect(x, y, CELL, CELL);
-        }
-      }
-    }
-  })();
-  ctx.fillStyle = "#4caf50";
-  ctx.font = "bold 24px monospace";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("CARROT MAZE", canvas.width / 2, canvas.height / 2 - 30);
-  ctx.fillStyle = "#a5d6a7";
-  ctx.font = "16px monospace";
-  ctx.fillText("Press any arrow key to start", canvas.width / 2, canvas.height / 2 + 15);
-  game = null;
-
-  canvas.addEventListener("click", startGame);
-
-  const arrows = {ArrowUp:1,ArrowDown:1,ArrowLeft:1,ArrowRight:1,w:1,W:1,a:1,A:1,s:1,S:1,d:1,D:1};
-  function starter(e) {
-    if (!arrows[e.key]) return;
-    if (e.key === "F5" || e.key === "F12") return;
-    if (game && game.alive) return; // already started by handleKeyDown
-    e.preventDefault();
-    document.removeEventListener("keydown", starter);
-    startGame();
-    const dirName = keyMap[e.key];
-    if (dirName) {
-      game.nextDir = {dx: DIRS[dirName].dx, dy: DIRS[dirName].dy};
-    }
-  }
-  document.addEventListener("keydown", starter);
-
+  game=newGame();game.alive=false;ctx.fillStyle="#1b3a0f";ctx.fillRect(0,0,canvas.width,canvas.height);
+  (function drawInit(){for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const tile=game.maze[r][c];const x=c*CELL,y=r*CELL;if(tile===BED){ctx.fillStyle=(r+c)%2===0?"#4a7c3f":"#3d5a2e";ctx.fillRect(x,y,CELL,CELL);}else{ctx.fillStyle=(r+c)%2===0?"#4a3520":"#3f2d1a";ctx.fillRect(x,y,CELL,CELL);}}})();
+  game=null;
+  document.getElementById("main-menu").classList.add("visible");uiFocus=true;
+  requestAnimationFrame(gameLoop);
+  const arrows={ArrowUp:1,ArrowDown:1,ArrowLeft:1,ArrowRight:1,w:1,W:1,a:1,A:1,s:1,S:1,d:1,D:1};
+  function starter(e){if(!arrows[e.key])return;if(e.key==="F5"||e.key==="F12")return;if(game&&game.alive)return;if(!document.getElementById("main-menu").classList.contains("visible"))return;e.preventDefault();initAudio();startGame();const dn=keyMap[e.key];if(dn){game.nextDir={dx:DIRS[dn].dx,dy:DIRS[dn].dy};}}
+  document.addEventListener("keydown",starter);
 })();
 </script>
 </body>
