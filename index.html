@@ -697,6 +697,10 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
     state.growPending = 0;
     state.accumulator = 0;
     state.eatenCarrots = new Set(); // R3: fresh carrots for new level
+    // R6: reset floor rabbit flags for non-Level-1 levels
+    for (let i = 0; i < state.rabbits.length; i++) {
+      state.rabbits[i].isFloorRabbit = false;
+    }
     // Rebuild bed graph for new maze
     buildBedGraphFromMaze(newMaze);
     // Move rabbits to random available BED positions
