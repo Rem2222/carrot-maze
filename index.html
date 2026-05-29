@@ -8,14 +8,15 @@
 *,*::before,*::after{box-sizing:border-box}
 body{margin:0;padding:0;background:radial-gradient(ellipse at center,#1e2a1e 0%,#0a0f0a 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'Courier New',monospace}
 body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.035)2px,rgba(0,0,0,0.035)4px);pointer-events:none;z-index:100}
-.game-wrapper{position:relative;border:3px solid #2d5a1e;border-radius:8px;box-shadow:0 0 40px rgba(45,90,30,0.3),inset 0 0 20px rgba(0,0,0,0.5);background:#1b3a0f}
-canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-rendering:crisp-edges}
+.game-wrapper{position:relative;border:3px solid #8d6e4c;border-radius:8px;box-shadow:0 0 40px rgba(141,110,76,0.3),inset 0 0 20px rgba(0,0,0,0.5);background:#5d4037}
+canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-rendering:crisp-edges}
 #game-over{position:absolute;inset:0;background:rgba(0,0,0,0.78);display:none;align-items:center;justify-content:center;flex-direction:column;z-index:10;animation:fadeIn .4s ease-out;border-radius:5px}
 #game-over.visible{display:flex}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 .game-over-title{font-family:'Courier New',monospace;font-size:36px;color:#ff5252;text-shadow:0 0 20px rgba(255,82,82,0.5);margin:0 0 8px;letter-spacing:4px}
 .final-score{font-size:22px;color:#ffd54f;margin:4px 0}
 .high-score{font-size:16px;color:#a5d6a7;margin:4px 0 16px}
+.level-display{font-size:14px;color:#81c784;margin:2px 0}
 .restart-btn{font-family:'Courier New',monospace;font-size:18px;padding:10px 32px;background:#4caf50;color:#fff;border:2px solid #66bb6a;border-radius:4px;cursor:pointer;transition:background .15s;letter-spacing:2px}
 .restart-btn:hover{background:#66bb6a}
 .hint{font-size:12px;color:rgba(255,255,255,0.4);margin-top:10px}
@@ -23,10 +24,11 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
 </head>
 <body>
 <div class="game-wrapper">
-<canvas id="game" width="600" height="400"></canvas>
+<canvas id="game" width="900" height="600"></canvas>
 <div id="game-over">
 <div class="game-over-title">GAME OVER</div>
 <div class="final-score">Score: <span id="final-score">0</span></div>
+<div class="level-display">Level: <span id="final-level">1</span></div>
 <div class="high-score">Best: <span id="high-score">0</span></div>
 <button class="restart-btn" id="restart-btn">PLAY AGAIN</button>
 <div class="hint">Press ENTER or SPACE to restart</div>
@@ -37,15 +39,18 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
   "use strict";
 
   // ---------- Const ----------
-  const COLS = 30, ROWS = 20, CELL = 20;
-  const BASE_TICK_MS = 125; // 8 Hz
-  function currentTickMs(score) {
-    const eaten = Math.floor(score / 10);
-    if (eaten < 5) return 125;
-    if (eaten < 10) return 100;
-    return 67;
+  const COLS = 30, ROWS = 20, CELL = 30;
+  const BASE_TICK_MS = 500; // 2 Hz — 4x slower than original 125ms
+  const RABBITS_PER_LEVEL = 3; // level up after eating this many
+
+  // Speed per level: each level is slightly faster
+  function currentTickMs(level) {
+    // Level 1: 500ms, Level 2: 400ms, Level 3: 333ms, etc.
+    // Never below 150ms
+    return Math.max(150, Math.floor(BASE_TICK_MS / (1 + (level - 1) * 0.25)));
   }
-  const WALL=0, FLOOR=1, BED=2;
+
+  const FLOOR = 0, BED = 1;
   const DIRS = {UP:{dx:0,dy:-1},DOWN:{dx:0,dy:1},LEFT:{dx:-1,dy:0},RIGHT:{dx:1,dy:0}};
 
   // ---------- Canvas ----------
@@ -53,7 +58,123 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
   const ctx = canvas.getContext("2d");
   ctx.imageSmoothingEnabled = false;
 
-  // ---------- Maze Generation ----------
+  // ---------- Level Patterns ----------
+  // Simple predefined patterns. 0=FLOOR(path), 1=BED(wall/bush)
+  // Each pattern is 30x20 grid
+
+  function generateOpenField() {
+    // Level 1: completely open field — no walls at all
+    // User said: "Первый уровень - без грядок (стенок)"
+    // Rabbits spawn on FLOOR for this level
+    return Array.from({length: ROWS}, () => Array(COLS).fill(FLOOR));
+  }
+
+  function generateOneWall() {
+    // Level 2: one horizontal wall across the middle, with small carrot islands
+    const grid = Array.from({length: ROWS}, () => Array(COLS).fill(FLOOR));
+    const midY = Math.floor(ROWS / 2);
+    const startX = 5;
+    const endX = COLS - 6;
+    for (let x = startX; x <= endX; x += 2) {
+      grid[midY][x] = BED;
+    }
+    // Small carrot islands (for rabbits to inhabit)
+    for (let x = startX + 3; x <= endX - 3; x += 8) {
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const cx = x + dx, cy = midY + dy;
+          if (cx >= 1 && cx < COLS-1 && cy >= 1 && cy < ROWS-1) {
+            grid[cy][cx] = BED;
+          }
+        }
+      }
+    }
+    return grid;
+  }
+
+  function generateTwoWalls() {
+    // Level 3: two parallel walls
+    const grid = Array.from({length: ROWS}, () => Array(COLS).fill(FLOOR));
+    const y1 = Math.floor(ROWS * 0.3);
+    const y2 = Math.floor(ROWS * 0.7);
+    const startX = 4;
+    const endX = COLS - 5;
+    for (let x = startX; x <= endX; x++) {
+      grid[y1][x] = BED;
+      grid[y2][x] = BED;
+    }
+    // Add some L-shaped extensions
+    grid[y1 - 1][startX + 2] = BED;
+    grid[y1 - 1][startX + 3] = BED;
+    grid[y2 + 1][endX - 2] = BED;
+    grid[y2 + 1][endX - 3] = BED;
+    return grid;
+  }
+
+  function generateCross() {
+    // Level 4: cross pattern
+    const grid = Array.from({length: ROWS}, () => Array(COLS).fill(FLOOR));
+    const midX = Math.floor(COLS / 2);
+    const midY = Math.floor(ROWS / 2);
+    // Vertical wall
+    for (let y = 3; y < ROWS - 3; y++) {
+      grid[y][midX] = BED;
+    }
+    // Horizontal wall
+    for (let x = 3; x < COLS - 3; x++) {
+      grid[midY][x] = BED;
+    }
+    // Thicken at intersection
+    grid[midY - 1][midX - 1] = BED;
+    grid[midY - 1][midX] = BED;
+    grid[midY + 1][midX] = BED;
+    grid[midY][midX - 1] = BED;
+    return grid;
+  }
+
+  function generatePatterns() {
+    // Level 5+: diagonal patterns and more complex layouts
+    const grid = Array.from({length: ROWS}, () => Array(COLS).fill(FLOOR));
+    const patternType = Math.floor(Math.random() * 3);
+    if (patternType === 0) {
+      // Diagonal stripes
+      for (let i = 0; i < ROWS * 2; i += 3) {
+        for (let r = 0; r < ROWS; r++) {
+          const c = i - r;
+          if (c >= 0 && c < COLS) grid[r][c] = BED;
+        }
+      }
+    } else if (patternType === 1) {
+      // Checkerboard rooms
+      for (let r = 0; r < ROWS; r += 5) {
+        for (let c = 0; c < COLS; c += 6) {
+          for (let dr = 0; dr < 3; dr++) {
+            for (let dc = 0; dc < 3; dc++) {
+              const x = c + dc, y = r + dr;
+              if (x < COLS && y < ROWS) grid[y][x] = BED;
+            }
+          }
+        }
+      }
+    } else {
+      // Spiralish: concentric L-shapes
+      for (let layer = 0; layer < 4; layer++) {
+        const offset = layer * 2 + 2;
+        if (offset >= Math.min(COLS, ROWS) / 2) break;
+        // Top
+        for (let x = offset; x < COLS - offset; x++) grid[offset][x] = BED;
+        // Bottom
+        for (let x = offset; x < COLS - offset; x++) grid[ROWS - 1 - offset][x] = BED;
+        // Left (skip corners already set)
+        for (let y = offset + 1; y < ROWS - 1 - offset; y++) grid[y][offset] = BED;
+        // Right (skip corners already set)
+        for (let y = offset + 1; y < ROWS - 1 - offset; y++) grid[y][COLS - 1 - offset] = BED;
+      }
+    }
+    return grid;
+  }
+
+  // ---------- Maze Generation (Hardcore mode) ----------
   function shuffle(arr) {
     for (let i = arr.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -62,17 +183,14 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
     return arr;
   }
 
-  function generateMaze() {
+  function generateHardcoreMaze() {
     const gridW = 14, gridH = 9;
-    const maze = Array.from({length: ROWS}, () => Array(COLS).fill(WALL));
-
+    const maze = Array.from({length: ROWS}, () => Array(COLS).fill(BED));
     const visited = Array.from({length: gridH}, () => Array(gridW).fill(false));
-
     function dfs(c, r) {
       visited[r][c] = true;
       const mx = c * 2 + 1, my = r * 2 + 1;
       maze[my][mx] = FLOOR;
-
       const dirs = shuffle([[0,-1],[0,1],[-1,0],[1,0]]);
       for (const [dc, dr] of dirs) {
         const nc = c + dc, nr = r + dr;
@@ -82,162 +200,31 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
         }
       }
     }
-
     dfs(Math.floor(gridW/2), Math.floor(gridH/2));
-
-    // ---- Room carving ----
-    const numRooms = 7 + Math.floor(Math.random() * 4);
-    const rooms = [];
-
-    for (let attempt = 0; attempt < 300 && rooms.length < numRooms; attempt++) {
-      const rw = 2 + Math.floor(Math.random() * 2);
-      const rh = 2 + Math.floor(Math.random() * 2);
-      const rx = 1 + Math.floor(Math.random() * (COLS - rw - 1));
-      const ry = 1 + Math.floor(Math.random() * (ROWS - rh - 1));
-
-      let overlaps = false;
-      for (const room of rooms) {
-        if (rx < room.x + room.w + 1 && rx + rw + 1 > room.x &&
-            ry < room.y + room.h + 1 && ry + rh + 1 > room.y) {
-          overlaps = true;
-          break;
-        }
-      }
-      if (overlaps) continue;
-
-      let connected = false;
-      outer:
-      for (let y = ry; y < ry + rh; y++) {
-        for (let x = rx; x < rx + rw; x++) {
-          for (const [dx, dy] of [[0,-1],[0,1],[-1,0],[1,0]]) {
-            const nx = x + dx, ny = y + dy;
-            if (nx >= 1 && nx < COLS-1 && ny >= 1 && ny < ROWS-1 &&
-                (maze[ny][nx] === FLOOR || maze[ny][nx] === BED)) {
-              connected = true;
-              break outer;
-            }
-          }
-        }
-      }
-      if (!connected) continue;
-
-      rooms.push({x: rx, y: ry, w: rw, h: rh});
-      for (let y = ry; y < ry + rh; y++)
-        for (let x = rx; x < rx + rw; x++)
-          maze[y][x] = BED;
-    }
-
-    // ---- BFS pathfinder ----
-    function bfsPath(from, to) {
-      const [sx, sy] = from, [ex, ey] = to;
-      const vis = Array.from({length: ROWS}, () => Array(COLS).fill(false));
-      const par = Array.from({length: ROWS}, () => Array(COLS).fill(null));
-      const q = [[sx, sy]];
-      vis[sy][sx] = true;
-
-      for (let qi = 0; qi < q.length; qi++) {
-        const [x, y] = q[qi];
-        if (x === ex && y === ey) {
-          const path = [];
-          let px = x, py = y;
-          while (px !== sx || py !== sy) {
-            path.push([px, py]);
-            [px, py] = par[py][px];
-          }
-          return path.reverse();
-        }
-        for (const [dx, dy] of [[0,-1],[0,1],[-1,0],[1,0]]) {
-          const nx = x + dx, ny = y + dy;
-          if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS && !vis[ny][nx] &&
-              (maze[ny][nx] === FLOOR || maze[ny][nx] === BED)) {
-            vis[ny][nx] = true;
-            par[ny][nx] = [x, y];
-            q.push([nx, ny]);
-          }
-        }
-      }
-      return null;
-    }
-
-    // ---- Bed component finder ----
-    function getBedComponents() {
-      const comp = new Map();
-      let cid = 0;
-      for (let r = 0; r < ROWS; r++) {
-        for (let c = 0; c < COLS; c++) {
-          if (maze[r][c] !== BED || comp.has(c+','+r)) continue;
-          cid++;
-          const q = [[c, r]];
-          comp.set(c+','+r, cid);
-          for (let qi = 0; qi < q.length; qi++) {
-            const [x, y] = q[qi];
-            for (const [dx, dy] of [[0,-1],[0,1],[-1,0],[1,0]]) {
-              const nx = x + dx, ny = y + dy;
-              const nk = nx+','+ny;
-              if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS &&
-                  maze[ny][nx] === BED && !comp.has(nk)) {
-                comp.set(nk, cid);
-                q.push([nx, ny]);
-              }
-            }
-          }
-        }
-      }
-      return {comp, cid};
-    }
-
-    // ---- Connect bed components ----
-    for (let mergeIter = 0; mergeIter < 20; mergeIter++) {
-      const {comp, cid} = getBedComponents();
-      if (cid <= 1) break;
-
-      const compBeds = {};
-      for (const [key, ci] of comp) {
-        if (!compBeds[ci]) compBeds[ci] = [];
-        compBeds[ci].push(key.split(',').map(Number));
-      }
-
-      const compKeys = Object.keys(compBeds);
-      let bestDist = Infinity, bestFrom = null, bestTo = null;
-
-      for (let i = 0; i < compKeys.length; i++) {
-        for (let j = i + 1; j < compKeys.length; j++) {
-          const ca = compBeds[compKeys[i]];
-          const cb = compBeds[compKeys[j]];
-          for (let ai = 0; ai < Math.min(5, ca.length); ai++) {
-            const a = ca[Math.floor(Math.random() * ca.length)];
-            for (let bi = 0; bi < Math.min(5, cb.length); bi++) {
-              const b = cb[Math.floor(Math.random() * cb.length)];
-              const dist = Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]);
-              if (dist < bestDist) { bestDist = dist; bestFrom = a; bestTo = b; }
-            }
-          }
-        }
-      }
-
-      if (!bestFrom || bestDist > 20) break;
-
-      const path = bfsPath(bestFrom, bestTo);
-      if (path) {
-        for (const [px, py] of path) {
-          if (maze[py][px] === FLOOR) maze[py][px] = BED;
-        }
-      }
-    }
-
     return maze;
   }
 
-  const maze = generateMaze();
+  // ---------- Level System ----------
+  function generateLevel(level) {
+    if (level >= 6) return generateHardcoreMaze();
+    switch(level) {
+      case 1: return generateOpenField();
+      case 2: return generateOneWall();
+      case 3: return generateTwoWalls();
+      case 4: return generateCross();
+      default: return generatePatterns();
+    }
+  }
 
+  const maze = generateLevel(1);
 
-  // ---------- Bed graph ----------
-  const bedCells = [];
-  const bedNbrs = new Map();
-  (function buildBedGraph() {
+  // ---------- Bed graph (for rabbit movement) ----------
+  function buildBedGraphFromMaze(mazeArr) {
+    bedCells.length = 0;
+    bedNbrs.clear();
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
-        if (maze[r][c] === BED) bedCells.push(c + "," + r);
+        if (mazeArr[r][c] === BED) bedCells.push(c + "," + r);
       }
     }
     for (const key of bedCells) {
@@ -245,13 +232,18 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
       const nbrs = [];
       for (const d of [DIRS.UP, DIRS.DOWN, DIRS.LEFT, DIRS.RIGHT]) {
         const nx = x + d.dx, ny = y + d.dy;
-        if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS && maze[ny][nx] === BED) {
+        if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS && mazeArr[ny][nx] === BED) {
           nbrs.push(nx + "," + ny);
         }
       }
       bedNbrs.set(key, nbrs);
     }
-  })();
+  }
+  
+  const bedCells = [];
+  const bedNbrs = new Map();
+  // Initial build at load time (will be rebuilt on game start)
+  buildBedGraphFromMaze(generateLevel(1));
 
   // ---------- Shake ----------
   const shake = { intensity: 0, decay: 0.88 };
@@ -277,7 +269,7 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
       particles.push({
         x: x, y: y, color: color,
         vx: Math.cos(angle) * spd, vy: Math.sin(angle) * spd - 1,
-        size: 2 + Math.random() * 3, life: life * (0.5 + Math.random() * 0.5),
+        size: 3 + Math.random() * 4, life: life * (0.5 + Math.random() * 0.5),
         maxLife: life * (0.5 + Math.random() * 0.5)
       });
     }
@@ -326,49 +318,33 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
 
   // ---------- Game state ----------
   let game = null;
-  window.__g = game;
-
 
   // ---------- Safe snake start finder ----------
-  function findSafeSnakeStart(maze) {
-    const DIRS = [[0,-1],[0,1],[-1,0],[1,0]];
-
-    // Score each candidate: prefer center, 2+ safe directions, clearance in at least 1 direction
+  function findSafeSnakeStart(mazeArr) {
+    const dirList = [[0,-1],[0,1],[-1,0],[1,0]];
     let best = null, bestScore = -1;
-
     for (let r = 2; r < ROWS - 2; r++) {
       for (let c = 3; c < COLS - 4; c++) {
-        // Head must be on FLOOR (not BED, not WALL)
-        if (maze[r][c] === WALL) continue;
-        // Body cells must not be walls
-        if (maze[r][c-1] === WALL || maze[r][c-2] === WALL) continue;
-
-        // Snake body extends LEFT from head: (c-1,r) and (c-2,r)
+        if (mazeArr[r][c] === BED) continue;
+        if (mazeArr[r][c-1] === BED || mazeArr[r][c-2] === BED) continue;
         const bodyCells = [{x: c-1, y: r}, {x: c-2, y: r}];
-
-        // Count safe directions from head (exclude wall AND self-collision)
         let safeDirs = 0, maxClear = 0;
-        for (const [dx, dy] of DIRS) {
+        for (const [dx, dy] of dirList) {
           const nx = c + dx, ny = r + dy;
-          if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS && maze[ny][nx] !== WALL) {
-            // Exclude self-collision: direction that hits snake body is NOT safe
+          if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS && mazeArr[ny][nx] !== BED) {
             if (bodyCells.some(bc => bc.x === nx && bc.y === ny)) continue;
             safeDirs++;
-            // Measure clearance in this direction
             let clear = 1;
             for (let i = 2; i < 10; i++) {
               const fx = c + dx * i, fy = r + dy * i;
-              if (fx < 0 || fx >= COLS || fy < 0 || fy >= ROWS || maze[fy][fx] === WALL) break;
+              if (fx < 0 || fx >= COLS || fy < 0 || fy >= ROWS || mazeArr[fy][fx] === BED) break;
               clear++;
             }
             if (clear > maxClear) maxClear = clear;
           }
         }
-
         if (safeDirs < 2) continue;
         if (maxClear < 3) continue;
-
-        // Score: prefer center + more clearance + more safe dirs
         const centerDist = Math.abs(c - COLS/2) + Math.abs(r - ROWS/2);
         const score = maxClear * 10 + safeDirs * 5 - centerDist;
         if (score > bestScore) {
@@ -377,19 +353,15 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
         }
       }
     }
-
     if (best) return best;
-
-    // Fallback: any position with 2+ safe directions
     for (let r = 2; r < ROWS - 2; r++) {
       for (let c = 2; c < COLS - 2; c++) {
-        if (maze[r][c] === WALL) continue;
-        // Snake body extends LEFT from head: (c-1,r) and (c-2,r)
+        if (mazeArr[r][c] === BED) continue;
         const bodyCells2 = [{x: c-1, y: r}, {x: c-2, y: r}];
         let safeDirs = 0;
-        for (const [dx, dy] of DIRS) {
+        for (const [dx, dy] of dirList) {
           const nx = c + dx, ny = r + dy;
-          if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS && maze[ny][nx] !== WALL) {
+          if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS && mazeArr[ny][nx] !== BED) {
             if (bodyCells2.some(bc => bc.x === nx && bc.y === ny)) continue;
             safeDirs++;
           }
@@ -397,20 +369,22 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
         if (safeDirs >= 2) return {x: c, y: r};
       }
     }
-
-    // Absolute fallback
     for (let r = 1; r < ROWS - 1; r++)
       for (let c = 1; c < COLS - 1; c++)
-        if (maze[r][c] !== WALL) return {x: c, y: r};
+        if (mazeArr[r][c] !== BED) return {x: c, y: r};
     return {x: 15, y: 10};
   }
 
   function newGame() {
+    const lvl = 1;
+    const m = generateLevel(lvl);
+    const ss = findSafeSnakeStart(m);
+    buildBedGraphFromMaze(m);
     return {
-      snake: (function() {
-        const ss = findSafeSnakeStart(maze);
-        return [{x:ss.x, y:ss.y}, {x:ss.x-1, y:ss.y}, {x:ss.x-2, y:ss.y}];
-      })(),
+      level: lvl,
+      rabbitsEaten: 0,
+      maze: m,
+      snake: [{x:ss.x, y:ss.y}, {x:ss.x-1, y:ss.y}, {x:ss.x-2, y:ss.y}],
       dir: {dx:0, dy:0}, nextDir: {dx:0, dy:0},
       growPending: 0,
       rabbits: [],
@@ -418,7 +392,8 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
       highScore: Math.max(0, parseInt(localStorage.getItem("crmz_hi") || "0")),
       alive: false,
       accumulator: 0,
-      spawnTimer: 0
+      spawnTimer: 0,
+      eatenCarrots: new Set() // R3: track eaten carrots
     };
   }
 
@@ -438,15 +413,55 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
       jumpTimer: interval * 0.3 + Math.random() * interval * 0.3,
       jumpInterval: interval,
       freezeTimer: 0,
+      carrotEatTimer: 2000 + Math.random() * 3000,
+      eatingCarrot: false,
+      isFloorRabbit: false,
+      personality: p
+    };
+  }
+  
+  function makeFloorRabbit(floorKey) {
+    const [bx, by] = floorKey.split(",").map(Number);
+    const p = randPersonality();
+    const interval = 3000 + Math.random() * 2000;
+    return {
+      bedKey: floorKey, prevBedKey: null,
+      vx: bx * CELL + CELL / 2, vy: by * CELL + CELL / 2,
+      jumping: false, targetBedKey: null, animProgress: 0, animDuration: 400, jumpOffset: 0,
+      jumpTimer: interval * 0.3 + Math.random() * interval * 0.3,
+      jumpInterval: interval,
+      freezeTimer: 0,
+      carrotEatTimer: 5000,
+      eatingCarrot: false,
+      isFloorRabbit: true,
       personality: p
     };
   }
 
   function spawnInitialRabbits(state) {
     const n = 4 + Math.floor(Math.random() * 2);
-    const shuffled = [...bedCells].sort(() => Math.random() - 0.5);
-    for (let i = 0; i < Math.min(n, shuffled.length); i++) {
-      state.rabbits.push(makeRabbit(shuffled[i]));
+    // If no BED cells available (Level 1), use FLOOR cells for rabbit spawn
+    const pool = bedCells.length > 0 ? bedCells : [];
+    if (pool.length === 0) {
+      // Spawn on FLOOR tiles far from snake
+      const floorPool = [];
+      const head = state.snake[0];
+      for (let r = 2; r < ROWS - 2; r++) {
+        for (let c = 2; c < COLS - 2; c++) {
+          if (state.maze[r][c] === FLOOR && (Math.abs(r - head.y) + Math.abs(c - head.x)) > 6) {
+            floorPool.push(c + "," + r);
+          }
+        }
+      }
+      const shuffled = floorPool.sort(() => Math.random() - 0.5);
+      for (let i = 0; i < Math.min(n, shuffled.length); i++) {
+        state.rabbits.push(makeFloorRabbit(shuffled[i]));
+      }
+    } else {
+      const shuffled = [...pool].sort(() => Math.random() - 0.5);
+      for (let i = 0; i < Math.min(n, shuffled.length); i++) {
+        state.rabbits.push(makeRabbit(shuffled[i]));
+      }
     }
   }
 
@@ -455,6 +470,22 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
     const free = bedCells.filter(k => !occupied.has(k));
     if (free.length > 0) {
       state.rabbits.push(makeRabbit(free[Math.floor(Math.random() * free.length)]));
+    } else {
+      // No free BED cells - try spawning on FLOOR
+      const head = state.snake[0];
+      let tries = 0;
+      while (tries < 20) {
+        const rx = 2 + Math.floor(Math.random() * (COLS - 4));
+        const ry = 2 + Math.floor(Math.random() * (ROWS - 4));
+        if (state.maze[ry][rx] === FLOOR && (Math.abs(ry - head.y) + Math.abs(rx - head.x)) > 5) {
+          const key = rx + "," + ry;
+          if (!occupied.has(key)) {
+            state.rabbits.push(makeFloorRabbit(key));
+            return;
+          }
+        }
+        tries++;
+      }
     }
   }
 
@@ -482,12 +513,32 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
     let score = 0;
     if (bedKey === rabbit.prevBedKey) score -= 0.4;
     if (rabbits.some(r => r.bedKey === bedKey && r !== rabbit)) score -= 0.5;
+    // R2: carrot affinity — prefer cells with uneaten carrots
+    const [c, r] = bedKey.split(",").map(Number);
+    if ((r * 13 + c * 7) % 5 < 2) {
+      score += 0.35;
+      if (game && game.eatenCarrots && !game.eatenCarrots.has(bedKey)) score += 0.2;
+    }
     score += (Math.random() - 0.5) * 0.8;
     return score;
   }
 
+  function getFloorNbrs(key) {
+    const [x, y] = key.split(",").map(Number);
+    const nbrs = [];
+    for (const d of [DIRS.UP, DIRS.DOWN, DIRS.LEFT, DIRS.RIGHT]) {
+      const nx = x + d.dx, ny = y + d.dy;
+      if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS) {
+        nbrs.push(nx + "," + ny);
+      }
+    }
+    return nbrs;
+  }
+
   function selectTarget(rabbit, state) {
-    const nbrs = bedNbrs.get(rabbit.bedKey) || [];
+    const nbrs = rabbit.isFloorRabbit 
+      ? getFloorNbrs(rabbit.bedKey) 
+      : (bedNbrs.get(rabbit.bedKey) || []);
     if (nbrs.length === 0) return null;
     const head = state.snake[0];
     const bedDist = bfsFromSnake(bedCells, head);
@@ -539,10 +590,27 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
         continue;
       }
       r.jumpTimer -= dt;
-      // Freeze: 15% chance when <= 1 cell from snake head
       if (r.freezeTimer > 0) {
         r.freezeTimer -= dt;
         if (r.freezeTimer > 0) continue;
+      }
+      // Carrot eating behavior
+      r.carrotEatTimer -= dt;
+      if (r.carrotEatTimer <= 0 && !r.eatingCarrot) {
+        r.eatingCarrot = true;
+        // R3: mark carrot at current position as eaten
+        const [ec, er] = r.bedKey.split(",").map(Number);
+        if ((er * 13 + ec * 7) % 5 < 2) {
+          state.eatenCarrots.add(r.bedKey);
+        }
+        r.carrotEatTimer = 800; // eat animation duration
+      }
+      if (r.eatingCarrot) {
+        if (r.carrotEatTimer <= 0) {
+          r.eatingCarrot = false;
+          r.carrotEatTimer = 2000 + Math.random() * 3000;
+        }
+        continue; // don't move while eating
       }
       const head = state.snake[0];
       const [rbx, rby] = r.bedKey.split(",").map(Number);
@@ -565,14 +633,13 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
   // ---------- Snake update ----------
   function updateSnake(state) {
     state.dir = { dx: state.nextDir.dx, dy: state.nextDir.dy };
-    // Don't move if no direction set yet
     if (state.dir.dx === 0 && state.dir.dy === 0) return true;
     const head = state.snake[0];
     const nh = { x: head.x + state.dir.dx, y: head.y + state.dir.dy };
 
-    // Bounds + wall
+    // Bounds + wall (BED is impassable)
     if (nh.x < 0 || nh.x >= COLS || nh.y < 0 || nh.y >= ROWS) return false;
-    if (maze[nh.y][nh.x] === WALL) return false;
+    if (state.maze[nh.y][nh.x] === BED) return false;
 
     // Self collision
     for (let i = 0; i < state.snake.length; i++) {
@@ -582,18 +649,29 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
     state.snake.unshift(nh);
     let ate = false;
 
+    // Rabbit collision: 
+    // - Floor rabbits: eat when head reaches same cell
+    // - Bed rabbits: eat when head is adjacent (distance <= 1)
     for (let i = state.rabbits.length - 1; i >= 0; i--) {
       const r = state.rabbits[i];
       if (!r.jumping) {
         const [bx, by] = r.bedKey.split(",").map(Number);
-        if (nh.x === bx && nh.y === by) {
+        const dist = Math.abs(nh.x - bx) + Math.abs(nh.y - by);
+        let eatDist = r.isFloorRabbit ? 0 : 1;
+        if (dist <= eatDist) {
           emitParticles(bx * CELL + CELL / 2, by * CELL + CELL / 2, "#ffffff", 12, 3, 500);
           emitParticles(bx * CELL + CELL / 2, by * CELL + CELL / 2, "#f7931e", 6, 2, 400);
           doShake(4);
           state.rabbits.splice(i, 1);
           state.score += 10;
+          state.rabbitsEaten++;
           state.growPending++;
           ate = true;
+
+          // Level progression: every RABBITS_PER_LEVEL rabbits eaten = new level
+          if (state.rabbitsEaten % RABBITS_PER_LEVEL === 0 && state.level < 10) {
+            advanceLevel(state);
+          }
           break;
         }
       }
@@ -604,6 +682,40 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
 
     if (ate && state.rabbits.length < 3) state.spawnTimer = 3000;
     return true;
+  }
+
+  function advanceLevel(state) {
+    state.level++;
+    // Generate new maze for new level
+    const newMaze = generateLevel(state.level);
+    state.maze = newMaze;
+    // Find safe start position
+    const ss = findSafeSnakeStart(newMaze);
+    state.snake = [{x:ss.x, y:ss.y}, {x:ss.x-1, y:ss.y}, {x:ss.x-2, y:ss.y}];
+    state.dir = {dx:0, dy:0};
+    state.nextDir = {dx:0, dy:0};
+    state.growPending = 0;
+    state.accumulator = 0;
+    state.eatenCarrots = new Set(); // R3: fresh carrots for new level
+    // R6: reset floor rabbit flags for non-Level-1 levels
+    for (let i = 0; i < state.rabbits.length; i++) {
+      state.rabbits[i].isFloorRabbit = false;
+    }
+    // Rebuild bed graph for new maze
+    buildBedGraphFromMaze(newMaze);
+    // Move rabbits to random available BED positions
+    const shuffled = [...bedCells].sort(() => Math.random() - 0.5);
+    for (let i = 0; i < state.rabbits.length; i++) {
+      if (i < shuffled.length) {
+        const [bx, by] = shuffled[i].split(",").map(Number);
+        state.rabbits[i].bedKey = shuffled[i];
+        state.rabbits[i].prevBedKey = null;
+        state.rabbits[i].vx = bx * CELL + CELL / 2;
+        state.rabbits[i].vy = by * CELL + CELL / 2;
+        state.rabbits[i].jumping = false;
+      }
+    }
+    doShake(6);
   }
 
   // ---------- Input ----------
@@ -625,10 +737,8 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
       const d = DIRS[dirName];
       if (game.nextDir.dx !== -d.dx || game.nextDir.dy !== -d.dy) {
         game.nextDir = d;
-        // If snake was stationary (dir is zero), start moving now
         if (game.dir.dx === 0 && game.dir.dy === 0) {
           game.dir = {dx: d.dx, dy: d.dy};
-          // accumulator stays at 0 — snake stays stationary for ~125ms
         }
       }
     }
@@ -643,22 +753,34 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
   function drawMaze() {
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
-        const tile = maze[r][c];
+        const tile = game ? game.maze[r][c] : BED; // initial draw defaults
         const x = c * CELL, y = r * CELL;
-        if (tile === WALL) {
-          ctx.fillStyle = "#1b3a0f";
+        if (tile === BED) {
+          // Garden bed / wall — GREEN (bushes)
+          ctx.fillStyle = (r + c) % 2 === 0 ? "#4a7c3f" : "#3d5a2e"; // R1: lightened for contrast
           ctx.fillRect(x, y, CELL, CELL);
-          ctx.fillStyle = "#2d5a1e";
-          ctx.fillRect(x + 2, y + 2, 4, 4);
-          ctx.fillRect(x + 10, y + 8, 4, 4);
-          ctx.fillRect(x + 6, y + 14, 3, 3);
-        } else if (tile === BED) {
+          // Dark border
+          ctx.fillStyle = "#1b3a0f";
+          ctx.fillRect(x, y, CELL, 2);
+          ctx.fillRect(x, y, 2, CELL);
+          // Bush texture dots
+          if ((r * 7 + c * 5) % 3 === 0) {
+            ctx.fillStyle = "#4caf50";
+            ctx.fillRect(x + 8, y + 12, 5, 5);
+            ctx.fillRect(x + 18, y + 6, 4, 4);
+          }
+          // Draw carrot on some beds (about 30% chance based on position)
+          // R3: skip eaten carrots
+          if ((r * 13 + c * 7) % 5 < 2 && !(game && game.eatenCarrots && game.eatenCarrots.has(c + "," + r))) {
+            drawCarrot(x + CELL / 2, y + CELL / 2);
+          }
+        } else {
+          // Path — BROWN
           ctx.fillStyle = (r + c) % 2 === 0 ? "#4a3520" : "#3f2d1a";
           ctx.fillRect(x, y, CELL, CELL);
-          drawCarrot(x + CELL / 2, y + CELL / 2);
-        } else {
-          ctx.fillStyle = (r + c) % 2 === 0 ? "#2d5a1e" : "#264d18";
-          ctx.fillRect(x, y, CELL, CELL);
+          // Subtle edge detail
+          ctx.fillStyle = "rgba(0,0,0,0.1)";
+          ctx.fillRect(x, y, CELL, 1);
         }
       }
     }
@@ -668,14 +790,16 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
     animTime++;
     const sway = Math.sin(animTime * 0.05 + cx * 0.1) * 1.2;
     const rx = Math.floor(cx + sway), ry = Math.floor(cy);
+    // Carrot body
     ctx.fillStyle = "#f7931e";
-    ctx.fillRect(rx - 3, ry - 2, 6, 10);
-    ctx.fillRect(rx - 2, ry + 8, 4, 4);
-    ctx.fillRect(rx - 1, ry + 12, 2, 2);
+    ctx.fillRect(rx - 4, ry - 4, 8, 14);
+    ctx.fillRect(rx - 3, ry + 10, 6, 6);
+    ctx.fillRect(rx - 1, ry + 16, 2, 3);
+    // Green top
     ctx.fillStyle = "#4caf50";
-    ctx.fillRect(rx - 4, ry - 5, 2, 4);
-    ctx.fillRect(rx + 2, ry - 5, 2, 4);
-    ctx.fillRect(rx - 1, ry - 6, 2, 5);
+    ctx.fillRect(rx - 5, ry - 8, 3, 5);
+    ctx.fillRect(rx + 2, ry - 8, 3, 5);
+    ctx.fillRect(rx - 1, ry - 10, 2, 7);
   }
 
   function drawSnake() {
@@ -688,24 +812,28 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
       const fade = 1 - (i / (len + 5)) * 0.35;
       const g = Math.floor(0xe6 * fade);
       const b = Math.floor(0x76 * fade);
+      // Outline
       ctx.fillStyle = "#1b3a0f";
       ctx.fillRect(x, y, CELL, CELL);
+      // Body
       ctx.fillStyle = isHead ? "#00e676" : "rgb(0," + g + "," + b + ")";
-      ctx.fillRect(x + 1, y + 1, CELL - 2, CELL - 2);
+      ctx.fillRect(x + 2, y + 2, CELL - 4, CELL - 4);
       if (isHead) {
+        // Eyes
         ctx.fillStyle = "#1b3a0f";
         let ex1, ey1, ex2, ey2;
         const d = game.dir;
-        if (d.dx === 1) { ex1 = x + 13; ey1 = y + 4; ex2 = x + 13; ey2 = y + 12; }
-        else if (d.dx === -1) { ex1 = x + 3; ey1 = y + 4; ex2 = x + 3; ey2 = y + 12; }
-        else if (d.dy === -1) { ex1 = x + 5; ey1 = y + 3; ex2 = x + 12; ey2 = y + 3; }
-        else { ex1 = x + 5; ey1 = y + 13; ex2 = x + 12; ey2 = y + 13; }
-        ctx.fillRect(ex1, ey1, 4, 4);
-        ctx.fillRect(ex2, ey2, 4, 4);
+        if (d.dx === 1) { ex1 = x + 20; ey1 = y + 6; ex2 = x + 20; ey2 = y + 18; }
+        else if (d.dx === -1) { ex1 = x + 5; ey1 = y + 6; ex2 = x + 5; ey2 = y + 18; }
+        else if (d.dy === -1) { ex1 = x + 8; ey1 = y + 5; ex2 = x + 18; ey2 = y + 5; }
+        else { ex1 = x + 8; ey1 = y + 20; ex2 = x + 18; ey2 = y + 20; }
+        ctx.fillRect(ex1, ey1, 5, 5);
+        ctx.fillRect(ex2, ey2, 5, 5);
+        // Tongue flicker
         if (Math.floor(animTime / 10) % 2 === 0) {
           ctx.fillStyle = "#ff5252";
-          const tx = x + CELL / 2 + d.dx * 8, ty = y + CELL / 2 + d.dy * 8;
-          ctx.fillRect(tx - 1, ty - 1, 3, 3);
+          const tx = x + CELL / 2 + d.dx * 12, ty = y + CELL / 2 + d.dy * 12;
+          ctx.fillRect(tx - 1, ty - 1, 4, 4);
         }
       }
     }
@@ -713,55 +841,82 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
 
   function drawRabbit(r) {
     const x = Math.floor(r.vx), y = Math.floor(r.vy) - Math.floor(r.jumpOffset || 0);
+    // Shadow when jumping
     if (r.jumping && r.jumpOffset > 2) {
       ctx.fillStyle = "rgba(0,0,0,0.25)";
-      ctx.fillRect(x - 5, Math.floor(r.vy) - 1, 10, 3);
+      ctx.fillRect(x - 7, Math.floor(r.vy) - 1, 14, 4);
     }
+    // Body
     ctx.fillStyle = "#ffffff";
-    ctx.fillRect(x - 7, y - 7, 14, 14);
+    ctx.fillRect(x - 9, y - 9, 18, 18);
+    // Pink ears
     ctx.fillStyle = "#ffcdd2";
-    ctx.fillRect(x - 5, y - 13, 3, 7);
-    ctx.fillRect(x + 2, y - 13, 3, 7);
+    ctx.fillRect(x - 7, y - 18, 4, 10);
+    ctx.fillRect(x + 3, y - 18, 4, 10);
+    // Inner ear
     ctx.fillStyle = "#f48fb1";
-    ctx.fillRect(x - 4, y - 12, 2, 4);
-    ctx.fillRect(x + 3, y - 12, 2, 4);
+    ctx.fillRect(x - 6, y - 16, 2, 5);
+    ctx.fillRect(x + 4, y - 16, 2, 5);
+    // Eyes
     ctx.fillStyle = "#212121";
-    ctx.fillRect(x - 3, y - 2, 2, 2);
-    ctx.fillRect(x + 2, y - 2, 2, 2);
+    ctx.fillRect(x - 4, y - 3, 2, 2);
+    ctx.fillRect(x + 3, y - 3, 2, 2);
+    // Nose
     ctx.fillStyle = "#f48fb1";
-    ctx.fillRect(x - 1, y + 1, 2, 1);
+    ctx.fillRect(x - 1, y + 1, 2, 2);
+    // Carrot eating visual
+    if (r.eatingCarrot) {
+      ctx.fillStyle = "#f7931e";
+      ctx.fillRect(x + 5, y - 4, 5, 3);
+      ctx.fillStyle = "#4caf50";
+      ctx.fillRect(x + 5, y - 7, 3, 3);
+    }
     // Frozen overlay
     if (r.freezeTimer > 0) {
       ctx.fillStyle = "rgba(100,180,255,0.5)";
-      ctx.fillRect(x - 8, y - 14, 16, 16);
+      ctx.fillRect(x - 10, y - 18, 20, 20);
     }
   }
 
   function drawHUD() {
     const sx = 10, sy = 6;
     ctx.fillStyle = "rgba(0,0,0,0.55)";
-    ctx.fillRect(sx - 4, sy - 4, 170, 40);
-    ctx.strokeStyle = "#4caf50";
+    ctx.fillRect(sx - 4, sy - 4, 240, 50);
+    ctx.strokeStyle = "#8d6e4c";
     ctx.lineWidth = 1;
-    ctx.strokeRect(sx - 4, sy - 4, 170, 40);
+    ctx.strokeRect(sx - 4, sy - 4, 240, 50);
+    // Score
     ctx.fillStyle = "#a5d6a7";
-    ctx.font = "10px monospace";
+    ctx.font = "14px monospace";
     ctx.textBaseline = "top";
     ctx.fillText("SCORE", sx, sy);
     ctx.fillStyle = "#ffd54f";
-    ctx.font = "bold 18px monospace";
-    ctx.fillText(String(game.score).padStart(4, "0"), sx, sy + 14);
-    ctx.fillStyle = "rgba(255,255,255,0.5)";
-    ctx.font = "9px monospace";
-    ctx.fillText("HI " + String(game.highScore).padStart(4, "0"), sx + 100, sy + 2);
+    ctx.font = "bold 24px monospace";
+    ctx.fillText(String(game.score).padStart(4, "0"), sx, sy + 16);
+    // Level
+    ctx.fillStyle = "#81c784";
+    ctx.font = "12px monospace";
+    ctx.fillText("LVL " + game.level, sx + 130, sy + 2);
+    // Progress bar
+    const progress = (game.rabbitsEaten % RABBITS_PER_LEVEL) / RABBITS_PER_LEVEL;
+    ctx.fillStyle = "rgba(255,255,255,0.15)";
+    ctx.fillRect(sx + 130, sy + 18, 90, 8);
+    ctx.fillStyle = progress > 0 ? "#81c784" : "rgba(255,255,255,0.1)";
+    ctx.fillRect(sx + 130, sy + 18, Math.floor(90 * progress), 8);
+    ctx.strokeStyle = "rgba(255,255,255,0.3)";
+    ctx.strokeRect(sx + 130, sy + 18, 90, 8);
+    // Bunny count
     ctx.fillStyle = "#ffffff";
-    ctx.font = "9px monospace";
-    ctx.fillText("BUNNY " + game.rabbits.length, sx + 100, sy + 22);
+    ctx.font = "11px monospace";
+    ctx.fillText("BUNNY " + game.rabbits.length, sx + 130, sy + 32);
+    // High score
+    ctx.fillStyle = "rgba(255,255,255,0.5)";
+    ctx.font = "11px monospace";
+    ctx.fillText("HI " + String(game.highScore).padStart(4, "0"), sx, sy + 44);
   }
 
   // ---------- Game loop ----------
   function gameLoop(timestamp) {
-    window.__g = game;
     if (!game) return;
     requestAnimationFrame(gameLoop);
 
@@ -776,7 +931,7 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
     updateParticles(dt);
     updateShake();
 
-    const tickMs = currentTickMs(game.score);
+    const tickMs = currentTickMs(game.level);
     while (game.accumulator >= tickMs) {
       game.accumulator -= tickMs;
 
@@ -832,6 +987,7 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
     function deathAnim() {
       if (frames > 20) {
         document.getElementById("final-score").textContent = game.score;
+        document.getElementById("final-level").textContent = game.level;
         document.getElementById("high-score").textContent = game.highScore;
         document.getElementById("game-over").classList.add("visible");
         return;
@@ -847,8 +1003,11 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
 
   // ---------- Start ----------
   function startGame() {
+    if (game && game.alive) return; // R4: guard against double game loop
     document.getElementById("game-over").classList.remove("visible");
     game = newGame();
+    // Rebuild bed graph from current game maze
+    buildBedGraphFromMaze(game.maze);
     spawnInitialRabbits(game);
     game.alive = true;
     game.lastTimestamp = 0;
@@ -859,34 +1018,46 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
   }
 
   // ---------- Init ----------
-  // Draw maze background (title screen)
   game = newGame();
   game.alive = false;
   ctx.fillStyle = "#1b3a0f";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  drawMaze();
+  // Draw initial maze
+  (function drawInit() {
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const tile = game.maze[r][c];
+        const x = c * CELL, y = r * CELL;
+        if (tile === BED) {
+          ctx.fillStyle = (r + c) % 2 === 0 ? "#4a7c3f" : "#3d5a2e"; // R1: lightened for contrast
+          ctx.fillRect(x, y, CELL, CELL);
+        } else {
+          ctx.fillStyle = (r + c) % 2 === 0 ? "#4a3520" : "#3f2d1a";
+          ctx.fillRect(x, y, CELL, CELL);
+        }
+      }
+    }
+  })();
   ctx.fillStyle = "#4caf50";
-  ctx.font = "bold 16px monospace";
+  ctx.font = "bold 24px monospace";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText("CARROT MAZE", canvas.width / 2, canvas.height / 2 - 20);
+  ctx.fillText("CARROT MAZE", canvas.width / 2, canvas.height / 2 - 30);
   ctx.fillStyle = "#a5d6a7";
-  ctx.font = "12px monospace";
-  ctx.fillText("Press any arrow key to start", canvas.width / 2, canvas.height / 2 + 10);
+  ctx.font = "16px monospace";
+  ctx.fillText("Press any arrow key to start", canvas.width / 2, canvas.height / 2 + 15);
   game = null;
 
-  // Click to start game (stationary snake)
   canvas.addEventListener("click", startGame);
 
-  // First arrow key starts the game AND starts the snake moving
   const arrows = {ArrowUp:1,ArrowDown:1,ArrowLeft:1,ArrowRight:1,w:1,W:1,a:1,A:1,s:1,S:1,d:1,D:1};
   function starter(e) {
     if (!arrows[e.key]) return;
     if (e.key === "F5" || e.key === "F12") return;
+    if (game && game.alive) return; // already started by handleKeyDown
     e.preventDefault();
     document.removeEventListener("keydown", starter);
     startGame();
-    // Queue direction — snake waits stationary until first tick validates it
     const dirName = keyMap[e.key];
     if (dirName) {
       game.nextDir = {dx: DIRS[dirName].dx, dy: DIRS[dirName].dy};
