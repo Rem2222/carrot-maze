@@ -38,7 +38,13 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
 
   // ---------- Const ----------
   const COLS = 30, ROWS = 20, CELL = 20;
-  const TICK_MS = 125; // 8 Hz
+  const BASE_TICK_MS = 125; // 8 Hz
+  function currentTickMs(score) {
+    const eaten = Math.floor(score / 10);
+    if (eaten < 5) return 125;
+    if (eaten < 10) return 100;
+    return 67;
+  }
   const WALL=0, FLOOR=1, BED=2;
   const DIRS = {UP:{dx:0,dy:-1},DOWN:{dx:0,dy:1},LEFT:{dx:-1,dy:0},RIGHT:{dx:1,dy:0}};
 
@@ -170,7 +176,7 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
 
   function newGame() {
     return {
-      snake: [{x:10,y:15},{x:9,y:15},{x:8,y:15}],
+      snake: [{x:24,y:15},{x:23,y:15},{x:22,y:15}],
       dir: {dx:0, dy:0}, nextDir: {dx:0, dy:0},
       growPending: 0,
       rabbits: [],
@@ -197,6 +203,7 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
       jumping: false, targetBedKey: null, animProgress: 0, animDuration: 300, jumpOffset: 0,
       jumpTimer: interval * 0.3 + Math.random() * interval * 0.3,
       jumpInterval: interval,
+      freezeTimer: 0,
       personality: p
     };
   }
@@ -298,6 +305,18 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
         continue;
       }
       r.jumpTimer -= dt;
+      // Freeze: 15% chance when <= 1 cell from snake head
+      if (r.freezeTimer > 0) {
+        r.freezeTimer -= dt;
+        if (r.freezeTimer > 0) continue;
+      }
+      const head = state.snake[0];
+      const [rbx, rby] = r.bedKey.split(",").map(Number);
+      const distToHead = Math.abs(rbx - head.x) + Math.abs(rby - head.y);
+      if (distToHead <= 1 && Math.random() < 0.15) {
+        r.freezeTimer = 500;
+        continue;
+      }
       if (r.jumpTimer <= 0) {
         const target = selectTarget(r, state);
         if (target && target !== r.bedKey) startJump(r, target);
@@ -375,7 +394,7 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
         // If snake was stationary (dir is zero), start moving now
         if (game.dir.dx === 0 && game.dir.dy === 0) {
           game.dir = {dx: d.dx, dy: d.dy};
-          game.accumulator = TICK_MS; // trigger first tick immediately
+          // accumulator stays at 0 — snake stays stationary for ~125ms
         }
       }
     }
@@ -477,6 +496,11 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
     ctx.fillRect(x + 2, y - 2, 2, 2);
     ctx.fillStyle = "#f48fb1";
     ctx.fillRect(x - 1, y + 1, 2, 1);
+    // Frozen overlay
+    if (r.freezeTimer > 0) {
+      ctx.fillStyle = "rgba(100,180,255,0.5)";
+      ctx.fillRect(x - 8, y - 14, 16, 16);
+    }
   }
 
   function drawHUD() {
@@ -518,18 +542,19 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
     updateParticles(dt);
     updateShake();
 
-    while (game.accumulator >= TICK_MS) {
-      game.accumulator -= TICK_MS;
+    const tickMs = currentTickMs(game.score);
+    while (game.accumulator >= tickMs) {
+      game.accumulator -= tickMs;
 
       if (game.rabbits.length < 3) {
-        game.spawnTimer -= TICK_MS;
+        game.spawnTimer -= tickMs;
         if (game.spawnTimer <= 0) {
           respawnRabbit(game);
           game.spawnTimer = game.rabbits.length < 3 ? 3000 : 0;
         }
       }
 
-      updateRabbits(game, TICK_MS);
+      updateRabbits(game, tickMs);
 
       if (!updateSnake(game)) {
         gameOver();
@@ -627,10 +652,9 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
     e.preventDefault();
     document.removeEventListener("keydown", starter);
     startGame();
-    // Set direction from the key that started the game
+    // Queue direction — snake waits stationary until first tick validates it
     const dirName = keyMap[e.key];
     if (dirName) {
-      game.dir = {dx: DIRS[dirName].dx, dy: DIRS[dirName].dy};
       game.nextDir = {dx: DIRS[dirName].dx, dy: DIRS[dirName].dy};
     }
   }
