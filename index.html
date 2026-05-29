@@ -343,11 +343,16 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
         // Body cells must not be walls
         if (maze[r][c-1] === WALL || maze[r][c-2] === WALL) continue;
 
-        // Count safe directions from head
+        // Snake body extends LEFT from head: (c-1,r) and (c-2,r)
+        const bodyCells = [{x: c-1, y: r}, {x: c-2, y: r}];
+
+        // Count safe directions from head (exclude wall AND self-collision)
         let safeDirs = 0, maxClear = 0;
         for (const [dx, dy] of DIRS) {
           const nx = c + dx, ny = r + dy;
           if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS && maze[ny][nx] !== WALL) {
+            // Exclude self-collision: direction that hits snake body is NOT safe
+            if (bodyCells.some(bc => bc.x === nx && bc.y === ny)) continue;
             safeDirs++;
             // Measure clearance in this direction
             let clear = 1;
@@ -379,10 +384,15 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
     for (let r = 2; r < ROWS - 2; r++) {
       for (let c = 2; c < COLS - 2; c++) {
         if (maze[r][c] === WALL) continue;
+        // Snake body extends LEFT from head: (c-1,r) and (c-2,r)
+        const bodyCells2 = [{x: c-1, y: r}, {x: c-2, y: r}];
         let safeDirs = 0;
         for (const [dx, dy] of DIRS) {
           const nx = c + dx, ny = r + dy;
-          if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS && maze[ny][nx] !== WALL) safeDirs++;
+          if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS && maze[ny][nx] !== WALL) {
+            if (bodyCells2.some(bc => bc.x === nx && bc.y === ny)) continue;
+            safeDirs++;
+          }
         }
         if (safeDirs >= 2) return {x: c, y: r};
       }
