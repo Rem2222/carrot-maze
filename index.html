@@ -740,7 +740,7 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
         const x = c * CELL, y = r * CELL;
         if (tile === BED) {
           // Garden bed / wall — GREEN (bushes)
-          ctx.fillStyle = (r + c) % 2 === 0 ? "#2d5a1e" : "#264d18";
+          ctx.fillStyle = (r + c) % 2 === 0 ? "#4a7c3f" : "#3d5a2e"; // R1: lightened for contrast
           ctx.fillRect(x, y, CELL, CELL);
           // Dark border
           ctx.fillStyle = "#1b3a0f";
@@ -1011,7 +1011,7 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
         const tile = game.maze[r][c];
         const x = c * CELL, y = r * CELL;
         if (tile === BED) {
-          ctx.fillStyle = (r + c) % 2 === 0 ? "#2d5a1e" : "#264d18";
+          ctx.fillStyle = (r + c) % 2 === 0 ? "#4a7c3f" : "#3d5a2e"; // R1: lightened for contrast
           ctx.fillRect(x, y, CELL, CELL);
         } else {
           ctx.fillStyle = (r + c) % 2 === 0 ? "#4a3520" : "#3f2d1a";
