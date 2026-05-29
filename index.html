@@ -53,29 +53,183 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
   const ctx = canvas.getContext("2d");
   ctx.imageSmoothingEnabled = false;
 
-  // ---------- Maze ----------
-  const maze = [
-    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,1,1,1,1,0,2,2,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,1,0,0,0],
-    [0,1,0,0,1,0,2,2,0,1,0,1,0,0,0,1,0,1,0,1,0,0,0,1,0,0,1,0,0,0],
-    [0,1,0,0,1,1,1,1,0,1,1,1,0,2,2,2,0,1,1,1,0,2,2,2,0,0,1,0,0,0],
-    [0,1,1,1,1,0,0,0,0,0,0,0,0,2,2,2,0,0,0,0,0,2,2,2,0,1,1,1,0,0],
-    [0,0,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1,0,1,0,0,0,0],
-    [0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,1,0,0,0,0],
-    [0,2,2,1,0,0,1,0,2,2,2,0,1,1,1,0,2,0,1,0,0,1,0,2,2,1,0,0,0,0],
-    [0,2,2,0,0,0,1,0,2,2,2,0,1,0,0,0,2,0,1,1,1,1,0,2,2,0,0,0,0,0],
-    [0,1,1,1,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0],
-    [0,1,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0],
-    [0,1,0,2,2,0,1,0,2,2,0,0,1,0,2,2,0,1,1,1,0,2,2,1,0,0,1,0,0,0],
-    [0,1,0,2,2,0,1,0,2,2,0,0,1,0,2,2,0,1,0,0,0,2,2,0,0,0,1,0,0,0],
-    [0,1,1,1,1,1,1,0,0,0,0,0,1,1,1,1,1,1,0,2,2,2,0,0,1,1,1,0,0,0],
-    [0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,0,0,1,0,0,0,0,0],
-    [0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0],
-    [0,0,0,2,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,2,2,0,0,0,0,0,0,0,2,2,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,0],
-    [0,0,0,1,1,1,1,1,1,1,1,1,2,2,1,1,1,1,1,2,2,1,1,1,1,1,1,0,0,0],
-    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-  ];
+  // ---------- Maze Generation ----------
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function generateMaze() {
+    const gridW = 14, gridH = 9;
+    const maze = Array.from({length: ROWS}, () => Array(COLS).fill(WALL));
+
+    const visited = Array.from({length: gridH}, () => Array(gridW).fill(false));
+
+    function dfs(c, r) {
+      visited[r][c] = true;
+      const mx = c * 2 + 1, my = r * 2 + 1;
+      maze[my][mx] = FLOOR;
+
+      const dirs = shuffle([[0,-1],[0,1],[-1,0],[1,0]]);
+      for (const [dc, dr] of dirs) {
+        const nc = c + dc, nr = r + dr;
+        if (nc >= 0 && nc < gridW && nr >= 0 && nr < gridH && !visited[nr][nc]) {
+          maze[my + dr][mx + dc] = FLOOR;
+          dfs(nc, nr);
+        }
+      }
+    }
+
+    dfs(Math.floor(gridW/2), Math.floor(gridH/2));
+
+    // ---- Room carving ----
+    const numRooms = 7 + Math.floor(Math.random() * 4);
+    const rooms = [];
+
+    for (let attempt = 0; attempt < 300 && rooms.length < numRooms; attempt++) {
+      const rw = 2 + Math.floor(Math.random() * 2);
+      const rh = 2 + Math.floor(Math.random() * 2);
+      const rx = 1 + Math.floor(Math.random() * (COLS - rw - 1));
+      const ry = 1 + Math.floor(Math.random() * (ROWS - rh - 1));
+
+      let overlaps = false;
+      for (const room of rooms) {
+        if (rx < room.x + room.w + 1 && rx + rw + 1 > room.x &&
+            ry < room.y + room.h + 1 && ry + rh + 1 > room.y) {
+          overlaps = true;
+          break;
+        }
+      }
+      if (overlaps) continue;
+
+      let connected = false;
+      outer:
+      for (let y = ry; y < ry + rh; y++) {
+        for (let x = rx; x < rx + rw; x++) {
+          for (const [dx, dy] of [[0,-1],[0,1],[-1,0],[1,0]]) {
+            const nx = x + dx, ny = y + dy;
+            if (nx >= 1 && nx < COLS-1 && ny >= 1 && ny < ROWS-1 &&
+                (maze[ny][nx] === FLOOR || maze[ny][nx] === BED)) {
+              connected = true;
+              break outer;
+            }
+          }
+        }
+      }
+      if (!connected) continue;
+
+      rooms.push({x: rx, y: ry, w: rw, h: rh});
+      for (let y = ry; y < ry + rh; y++)
+        for (let x = rx; x < rx + rw; x++)
+          maze[y][x] = BED;
+    }
+
+    // ---- BFS pathfinder ----
+    function bfsPath(from, to) {
+      const [sx, sy] = from, [ex, ey] = to;
+      const vis = Array.from({length: ROWS}, () => Array(COLS).fill(false));
+      const par = Array.from({length: ROWS}, () => Array(COLS).fill(null));
+      const q = [[sx, sy]];
+      vis[sy][sx] = true;
+
+      for (let qi = 0; qi < q.length; qi++) {
+        const [x, y] = q[qi];
+        if (x === ex && y === ey) {
+          const path = [];
+          let px = x, py = y;
+          while (px !== sx || py !== sy) {
+            path.push([px, py]);
+            [px, py] = par[py][px];
+          }
+          return path.reverse();
+        }
+        for (const [dx, dy] of [[0,-1],[0,1],[-1,0],[1,0]]) {
+          const nx = x + dx, ny = y + dy;
+          if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS && !vis[ny][nx] &&
+              (maze[ny][nx] === FLOOR || maze[ny][nx] === BED)) {
+            vis[ny][nx] = true;
+            par[ny][nx] = [x, y];
+            q.push([nx, ny]);
+          }
+        }
+      }
+      return null;
+    }
+
+    // ---- Bed component finder ----
+    function getBedComponents() {
+      const comp = new Map();
+      let cid = 0;
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          if (maze[r][c] !== BED || comp.has(c+','+r)) continue;
+          cid++;
+          const q = [[c, r]];
+          comp.set(c+','+r, cid);
+          for (let qi = 0; qi < q.length; qi++) {
+            const [x, y] = q[qi];
+            for (const [dx, dy] of [[0,-1],[0,1],[-1,0],[1,0]]) {
+              const nx = x + dx, ny = y + dy;
+              const nk = nx+','+ny;
+              if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS &&
+                  maze[ny][nx] === BED && !comp.has(nk)) {
+                comp.set(nk, cid);
+                q.push([nx, ny]);
+              }
+            }
+          }
+        }
+      }
+      return {comp, cid};
+    }
+
+    // ---- Connect bed components ----
+    for (let mergeIter = 0; mergeIter < 20; mergeIter++) {
+      const {comp, cid} = getBedComponents();
+      if (cid <= 1) break;
+
+      const compBeds = {};
+      for (const [key, ci] of comp) {
+        if (!compBeds[ci]) compBeds[ci] = [];
+        compBeds[ci].push(key.split(',').map(Number));
+      }
+
+      const compKeys = Object.keys(compBeds);
+      let bestDist = Infinity, bestFrom = null, bestTo = null;
+
+      for (let i = 0; i < compKeys.length; i++) {
+        for (let j = i + 1; j < compKeys.length; j++) {
+          const ca = compBeds[compKeys[i]];
+          const cb = compBeds[compKeys[j]];
+          for (let ai = 0; ai < Math.min(5, ca.length); ai++) {
+            const a = ca[Math.floor(Math.random() * ca.length)];
+            for (let bi = 0; bi < Math.min(5, cb.length); bi++) {
+              const b = cb[Math.floor(Math.random() * cb.length)];
+              const dist = Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]);
+              if (dist < bestDist) { bestDist = dist; bestFrom = a; bestTo = b; }
+            }
+          }
+        }
+      }
+
+      if (!bestFrom || bestDist > 20) break;
+
+      const path = bfsPath(bestFrom, bestTo);
+      if (path) {
+        for (const [px, py] of path) {
+          if (maze[py][px] === FLOOR) maze[py][px] = BED;
+        }
+      }
+    }
+
+    return maze;
+  }
+
+  const maze = generateMaze();
+
 
   // ---------- Bed graph ----------
   const bedCells = [];
@@ -174,9 +328,79 @@ canvas{display:block;width:600px;height:400px;image-rendering:pixelated;image-re
   let game = null;
   window.__g = game;
 
+
+  // ---------- Safe snake start finder ----------
+  function findSafeSnakeStart(maze) {
+    const DIRS = [[0,-1],[0,1],[-1,0],[1,0]];
+
+    // Score each candidate: prefer center, 2+ safe directions, clearance in at least 1 direction
+    let best = null, bestScore = -1;
+
+    for (let r = 2; r < ROWS - 2; r++) {
+      for (let c = 3; c < COLS - 4; c++) {
+        // Head must be on FLOOR (not BED, not WALL)
+        if (maze[r][c] === WALL) continue;
+        // Body cells must not be walls
+        if (maze[r][c-1] === WALL || maze[r][c-2] === WALL) continue;
+
+        // Count safe directions from head
+        let safeDirs = 0, maxClear = 0;
+        for (const [dx, dy] of DIRS) {
+          const nx = c + dx, ny = r + dy;
+          if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS && maze[ny][nx] !== WALL) {
+            safeDirs++;
+            // Measure clearance in this direction
+            let clear = 1;
+            for (let i = 2; i < 10; i++) {
+              const fx = c + dx * i, fy = r + dy * i;
+              if (fx < 0 || fx >= COLS || fy < 0 || fy >= ROWS || maze[fy][fx] === WALL) break;
+              clear++;
+            }
+            if (clear > maxClear) maxClear = clear;
+          }
+        }
+
+        if (safeDirs < 2) continue;
+        if (maxClear < 3) continue;
+
+        // Score: prefer center + more clearance + more safe dirs
+        const centerDist = Math.abs(c - COLS/2) + Math.abs(r - ROWS/2);
+        const score = maxClear * 10 + safeDirs * 5 - centerDist;
+        if (score > bestScore) {
+          bestScore = score;
+          best = {x: c, y: r};
+        }
+      }
+    }
+
+    if (best) return best;
+
+    // Fallback: any position with 2+ safe directions
+    for (let r = 2; r < ROWS - 2; r++) {
+      for (let c = 2; c < COLS - 2; c++) {
+        if (maze[r][c] === WALL) continue;
+        let safeDirs = 0;
+        for (const [dx, dy] of DIRS) {
+          const nx = c + dx, ny = r + dy;
+          if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS && maze[ny][nx] !== WALL) safeDirs++;
+        }
+        if (safeDirs >= 2) return {x: c, y: r};
+      }
+    }
+
+    // Absolute fallback
+    for (let r = 1; r < ROWS - 1; r++)
+      for (let c = 1; c < COLS - 1; c++)
+        if (maze[r][c] !== WALL) return {x: c, y: r};
+    return {x: 15, y: 10};
+  }
+
   function newGame() {
     return {
-      snake: [{x:24,y:15},{x:23,y:15},{x:22,y:15}],
+      snake: (function() {
+        const ss = findSafeSnakeStart(maze);
+        return [{x:ss.x, y:ss.y}, {x:ss.x-1, y:ss.y}, {x:ss.x-2, y:ss.y}];
+      })(),
       dir: {dx:0, dy:0}, nextDir: {dx:0, dy:0},
       growPending: 0,
       rabbits: [],
