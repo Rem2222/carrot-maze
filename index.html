@@ -184,7 +184,6 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
 <script>
 (function(){
   "use strict";
-
   // ---------- Sprite Skins ----------
   const SKIN = { current: "kawaii" };
 
@@ -720,6 +719,11 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
     for(let r=1;r<ROWS-1;r++)for(let c=1;c<COLS-1;c++)if(mazeArr[r][c]!==BED)return{x:c,y:r};
     return{x:15,y:10};
   }
+  function buildBedGraphFromMaze(mazeArr) {
+    bedCells.length = 0; bedNbrs.clear();
+    for (let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) if(mazeArr[r][c]===BED) bedCells.push(c+","+r);
+    for(const key of bedCells){const[x,y]=key.split(",").map(Number);const nbrs=[];for(const d of[DIRS.UP,DIRS.DOWN,DIRS.LEFT,DIRS.RIGHT]){const nx=x+d.dx,ny=y+d.dy;if(nx>=0&&nx<COLS&&ny>=0&&ny<ROWS&&mazeArr[ny][nx]===BED)nbrs.push(nx+","+ny);}bedNbrs.set(key,nbrs);}
+  }
 
   function newGame(){
     const lvl=1,m=generateLevel(lvl),ss=findSafeSnakeStart(m);
@@ -727,7 +731,7 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
     return{level:lvl,rabbitsEaten:0,levelRabbitsEaten:0,maze:m,
       snake:[{x:ss.x,y:ss.y},{x:ss.x-1,y:ss.y},{x:ss.x-2,y:ss.y}],
       dir:{dx:0,dy:0},nextDir:{dx:0,dy:0},growPending:0,rabbits:[],score:0,
-      highScore:Math.max(0,parseInt(localStorage.getItem(LS_KEYS.hi)||"0")),
+      highScore:function(){try{return Math.max(0,parseInt(localStorage.getItem(LS_KEYS.hi)||"0"));}catch(e){return 0;}}(),
       alive:false,paused:false,accumulator:0,spawnTimer:0,eatenCarrots:new Set(),
       lives:3,lastTimestamp:0,
       bonusesOnField:[],activeBuffs:{},bonusSpawnTimer:0,levelScore:0,levelTransition:false,levelTransitionTimer:0};
