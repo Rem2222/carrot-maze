@@ -926,32 +926,41 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
   // ---------- Game loop ----------
   function drawLevelTransition() {
     if (!game || !game.levelTransition) return;
-    const p = game.levelTransitionTimer / 2500;
-    const a = Math.min(1, p > 0.8 ? (1 - p) * 5 : 1);
-    ctx.fillStyle = "rgba(0,0,0," + (0.6 * a) + ")";
+    // Solid dark background matching menu style (not transparent)
+    ctx.fillStyle = "rgba(10,15,10,0.94)";
     ctx.fillRect(0, 0, COLS * CELL, ROWS * CELL);
-    ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.globalAlpha = a;
-    ctx.fillStyle = "#4caf50"; ctx.font = "bold 48px monospace";
-    ctx.fillText("LVL " + game.level, COLS * CELL / 2, ROWS * CELL / 2 - 60);
+    // Border like menu panels
+    ctx.strokeStyle = "#8d6e4c";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(COLS * CELL / 2 - 170, ROWS * CELL / 2 - 130, 340, 260);
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    // Level title
+    ctx.fillStyle = "#4caf50";
+    ctx.font = "bold 48px monospace";
+    ctx.fillText("LVL " + game.level, COLS * CELL / 2, ROWS * CELL / 2 - 70);
     ctx.textBaseline = "top";
+    // Level score
     ctx.fillStyle = "#a5d6a7"; ctx.font = "16px monospace";
     ctx.fillText("Level score: +" + game.levelScore + " pts", COLS * CELL / 2, ROWS * CELL / 2 - 20);
+    // Total score
     ctx.fillStyle = "#ffd54f"; ctx.font = "18px monospace";
-    ctx.fillText("Total: " + game.score, COLS * CELL / 2, ROWS * CELL / 2 + 10);
+    ctx.fillText("Total: " + game.score, COLS * CELL / 2, ROWS * CELL / 2 + 15);
+    // Lives
     let h = ""; for (let i = 0; i < game.lives; i++) h += "\u2665 ";
     ctx.fillStyle = "#ff5252"; ctx.font = "14px monospace";
-    ctx.fillText("Lives: " + h, COLS * CELL / 2, ROWS * CELL / 2 + 40);
+    ctx.fillText("Lives: " + h, COLS * CELL / 2, ROWS * CELL / 2 + 45);
+    // New bonus at this level?
     const nb = getNewBonusesAtLevel(game.level);
     if (nb.length > 0) {
       ctx.fillStyle = "#ce93d8"; ctx.font = "bold 16px monospace";
-      ctx.fillText("NEW BONUS!", COLS * CELL / 2, ROWS * CELL / 2 + 75);
+      ctx.fillText("NEW BONUS!", COLS * CELL / 2, ROWS * CELL / 2 + 80);
       ctx.font = "14px monospace";
       for (let i = 0; i < nb.length; i++) {
         const d = BONUS_TYPES[nb[i]]; ctx.fillStyle = d.color;
-        ctx.fillText(d.icon + " " + d.name, COLS * CELL / 2, ROWS * CELL / 2 + 95 + i * 20);
+        ctx.fillText(d.icon + " " + d.name, COLS * CELL / 2, ROWS * CELL / 2 + 100 + i * 20);
       }
     }
-    ctx.globalAlpha = 1; ctx.textBaseline = "alphabetic";
+    ctx.textBaseline = "alphabetic";
   }
 
   let rafHandle = null;
