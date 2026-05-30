@@ -511,6 +511,10 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
   const BONUS_MAX_ON_FIELD = 3;
   const BONUS_TTL = 15000;
   const BONUS_BLINK_START = 3000;
+  const BONUS_ORDER = [
+    "slow_down", "speed_up", "kill_rabbit", "extra_life",
+    "shorten_python", "pass_through", "rage", "wall_reverse", "freeze"
+  ];
 
   
   function getNewBonusesAtLevel(level) {
