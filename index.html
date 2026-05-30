@@ -167,6 +167,18 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
   <button class="restart-btn" id="restart-btn">PLAY AGAIN</button>
   <div class="hint">Press ENTER or SPACE to restart</div>
 </div>
+<div id="hof-save-overlay" class="overlay">
+  <div class="panel">
+    <div class="panel-title">NEW HIGH SCORE!</div>
+    <div class="final-score" style="margin:8px 0">Score: <span id="hof-save-score">0</span></div>
+    <div class="hof-input-row">
+      <span style="color:#a5d6a7;font-size:14px">NAME:</span>
+      <input type="text" class="hof-name-input" id="hof-save-name" maxlength="3" placeholder="AAA" autofocus>
+    </div>
+    <button class="menu-btn" id="hof-save-confirm">SAVE</button>
+    <button class="menu-btn secondary" id="hof-save-cancel">SKIP</button>
+  </div>
+</div>
 </div>
 
 <script>
@@ -339,7 +351,7 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
   // ---------- Const ----------
   const COLS = 30, ROWS = 20, CELL = 30, BASE_TICK_MS = 500;
   function rabbitsPerLevel(level) { return 2 + Math.floor((level - 1) / 5); }
-  function currentTickMs(level, speedMul) { return Math.max(75, Math.floor(BASE_TICK_MS / (1 + (level - 1) * 0.25) * (speedMul || 1))); }
+  function currentTickMs(level, speedMul) { return Math.max(150, Math.floor(BASE_TICK_MS / (1 + (level - 1) * 0.125) * (speedMul || 1))); }
   const FLOOR = 0, BED = 1;
 
   // ---------- Rabbit count by level ----------
@@ -552,7 +564,7 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
   setSFXVolume(settings.sfxVol || 100);
 
   // ---------- Menu management ----------
-  const allOverlays = ["main-menu","pause-menu","settings-menu","hall-of-fame","instructions","continue-menu","game-over"];
+  const allOverlays = ["main-menu","pause-menu","settings-menu","hall-of-fame","instructions","continue-menu","game-over","hof-save-overlay"];
   let prevOverlay = null;
 
   function hideAllOverlays() { for (const id of allOverlays) document.getElementById(id).classList.remove("visible"); uiFocus = false; }
@@ -616,11 +628,32 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
     grid[midY-1][midX-1] = BED; grid[midY-1][midX] = BED; grid[midY+1][midX] = BED; grid[midY][midX-1] = BED;
     return grid;
   }
+  function generateMediumMaze() {
+    const grid = Array.from({length: ROWS}, () => Array(COLS).fill(FLOOR));
+    // Add vertical and horizontal wall segments with wide gaps
+    const segCount = 3 + Math.floor(Math.random() * 3); // 3-5 segments
+    for (let s = 0; s < segCount; s++) {
+      const horiz = Math.random() < 0.5;
+      if (horiz) {
+        const row = 2 + Math.floor(Math.random() * (ROWS - 4));
+        const startCol = 2 + Math.floor(Math.random() * 10);
+        const len = 5 + Math.floor(Math.random() * 8);
+        for (let c = startCol; c < startCol + len && c < COLS - 2; c++) grid[row][c] = BED;
+      } else {
+        const col = 2 + Math.floor(Math.random() * (COLS - 4));
+        const startRow = 2 + Math.floor(Math.random() * 6);
+        const len = 3 + Math.floor(Math.random() * 5);
+        for (let r = startRow; r < startRow + len && r < ROWS - 2; r++) grid[r][col] = BED;
+      }
+    }
+    return grid;
+  }
+
   function generatePatterns() {
     const grid = Array.from({length: ROWS}, () => Array(COLS).fill(FLOOR));
     const t = Math.floor(Math.random() * 3);
     if (t === 0) { for (let i = 0; i < ROWS*2; i += 3) for (let r = 0; r < ROWS; r++) { const c = i-r; if (c>=0&&c<COLS) grid[r][c] = BED; } }
-    else if (t === 1) { for (let r = 0; r < ROWS; r += 5) for (let c = 0; c < COLS; c += 6) for (let dr = 0; dr < 3; dr++) for (let dc = 0; dc < 3; dc++) { const x=c+dc,y=r+dr; if(x<COLS&&y<ROWS)grid[y][x]=BED; } }
+    else if (t === 1) { for (let r = 0; r < ROWS; r += 6) for (let c = 0; c < COLS; c += 8) for (let dr = 0; dr < 2; dr++) for (let dc = 0; dc < 2; dc++) { const x=c+dc,y=r+dr; if(x<COLS&&y<ROWS)grid[y][x]=BED; } }
     else {
       for (let l = 0; l < 4; l++) {
         const o = l * 2 + 2;
@@ -649,15 +682,12 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
     const maze=Array.from({length:ROWS},()=>Array(COLS).fill(BED));
     const visited=Array.from({length:gridH},()=>Array(gridW).fill(false));
     function dfs(c,r){visited[r][c]=true;const mx=c*2+1,my=r*2+1;maze[my][mx]=FLOOR;const dirs=shuffle([[0,-1],[0,1],[-1,0],[1,0]]);for(const[dc,dr]of dirs){const nc=c+dc,nr=r+dr;if(nc>=0&&nc<gridW&&nr>=0&&nr<gridH&&!visited[nr][nc]){maze[my+dr][mx+dc]=FLOOR;dfs(nc,nr);}}}
-    dfs(Math.floor(gridW/2),Math.floor(gridH/2));return maze;
+    dfs(Math.floor(gridW/2),Math.floor(gridH/2));
+    // Add extra openings for easier navigation (carve extra passages)
+    for(let i=0;i<12;i++){const rx=1+Math.floor(Math.random()*(COLS-2)),ry=1+Math.floor(Math.random()*(ROWS-2));maze[ry][rx]=FLOOR;}
+    return maze;
   }
-  function generateLevel(level) { if(level>=6)return generateHardcoreMaze();switch(level){case 1:return generateOpenField();case 2:return generateOneWall();case 3:return generateTwoWalls();case 4:return generateCross();default:return generatePatterns();} }
-  const maze = generateLevel(1);
-  function buildBedGraphFromMaze(mazeArr) {
-    bedCells.length = 0; bedNbrs.clear();
-    for (let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) if(mazeArr[r][c]===BED) bedCells.push(c+","+r);
-    for(const key of bedCells){const[x,y]=key.split(",").map(Number);const nbrs=[];for(const d of[DIRS.UP,DIRS.DOWN,DIRS.LEFT,DIRS.RIGHT]){const nx=x+d.dx,ny=y+d.dy;if(nx>=0&&nx<COLS&&ny>=0&&ny<ROWS&&mazeArr[ny][nx]===BED)nbrs.push(nx+","+ny);}bedNbrs.set(key,nbrs);}
-  }
+  function generateLevel(level) { if(level>=8)return generateHardcoreMaze();switch(level){case 1:return generateOpenField();case 2:return generateOneWall();case 3:return generateTwoWalls();case 4:return generateCross();case 5:return generatePatterns();case 6:return generateMediumMaze();default:return generatePatterns();} }
   const bedCells = []; const bedNbrs = new Map();
   buildBedGraphFromMaze(generateLevel(1));
 
@@ -820,6 +850,7 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
       for(let i=0;i<state.rabbits.length;i++){if(i<sh.length){const[bx,by]=sh[i].split(",").map(Number);state.rabbits[i].bedKey=sh[i];state.rabbits[i].prevBedKey=null;state.rabbits[i].vx=bx*CELL+CELL/2;state.rabbits[i].vy=by*CELL+CELL/2;state.rabbits[i].jumping=false;}}
     }
     doShake(6);
+    state.levelTransition = true; state.levelTransitionTimer = 3000;
   }
 
   // ---------- Input ----------
@@ -848,10 +879,11 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
   document.getElementById("btn-pause-instructions").addEventListener("click",function(){showInstructions(true);});
   document.getElementById("btn-quit").addEventListener("click",function(){
     if(game&&game.score>0&&isHighScore(game.score)){
-      if(confirm("New high score: "+game.score+"! Save your name?")){
-        const name=prompt("Enter your name (3 letters):","AAA")||"AAA";
-        addScore(name.toUpperCase().slice(0,3),game.score,game.level);
-      }
+      document.getElementById("hof-save-score").textContent=game.score;
+      document.getElementById("hof-save-name").value="";
+      showOverlay("hof-save-overlay");
+      setTimeout(function(){document.getElementById("hof-save-name").focus();},100);
+      return;
     }
     hideAllOverlays();showMainMenu();});
   document.getElementById("btn-settings-back").addEventListener("click",goBackFromOverlay);
@@ -872,6 +904,12 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
   document.getElementById("btn-skin-kawaii").addEventListener("click",function(){settings.skin="kawaii";SKIN.current="kawaii";updateSettingsUI();saveSettings(settings);});
   document.getElementById("btn-skin-nes").addEventListener("click",function(){settings.skin="nes";SKIN.current="nes";updateSettingsUI();saveSettings(settings);});
   document.getElementById("hof-name-input").addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();const name=this.value.trim()||"AAA";addScore(name,game.score,game.level);this.style.display="none";document.getElementById("new-hs-msg").style.display="none";}});
+  document.getElementById("hof-save-confirm").addEventListener("click",function(){
+    const name=(document.getElementById("hof-save-name").value.trim()||"AAA").toUpperCase().slice(0,3);
+    if(game)addScore(name,game.score,game.level);
+    hideAllOverlays();showMainMenu();});
+  document.getElementById("hof-save-cancel").addEventListener("click",function(){hideAllOverlays();showMainMenu();});
+  document.getElementById("hof-save-name").addEventListener("keydown",function(e){if(e.key==="Enter"){document.getElementById("hof-save-confirm").click();}});
 
   // ---------- Drawing ----------
   let animTime = 0;
