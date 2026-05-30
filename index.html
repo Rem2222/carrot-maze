@@ -960,13 +960,16 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
         ctx.fillText(d.icon + " " + d.name, COLS * CELL / 2, ROWS * CELL / 2 + 100 + i * 20);
       }
     }
+    const secLeft = Math.ceil(game.levelTransitionTimer / 1000);
+    ctx.fillStyle = "#81c784"; ctx.font = "bold 22px monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("Next level in " + secLeft + "...", COLS * CELL / 2, ROWS * CELL / 2 + 125);
     ctx.textBaseline = "alphabetic";
   }
 
   let rafHandle = null;
   function gameLoop(timestamp){
     if(!game){rafHandle=requestAnimationFrame(gameLoop);return;}
-    if(game.levelTransition){render();game.levelTransitionTimer-=16;if(game.levelTransitionTimer<=0){game.levelTransition=false;game.lastTimestamp=0;}rafHandle=requestAnimationFrame(gameLoop);return;}
+    if(game.levelTransition){render();game.levelTransitionTimer-=16;if(game.levelTransitionTimer<=0){game.levelTransition=false;game.lastTimestamp=0;game.dir={dx:1,dy:0};game.nextDir={dx:1,dy:0};}rafHandle=requestAnimationFrame(gameLoop);return;}
     if(!game.alive){render();rafHandle=requestAnimationFrame(gameLoop);return;}
     if(game.paused){render();rafHandle=requestAnimationFrame(gameLoop);return;}
     if(game.lastTimestamp===0)game.lastTimestamp=timestamp;
