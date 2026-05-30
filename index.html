@@ -69,10 +69,11 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
 <div id="main-menu" class="overlay visible">
   <div class="menu-title">CARROT MAZE</div>
   <div class="menu-subtitle">PYTHON vs RABBITS</div>
-  <div class="menu-start">Press ENTER to start</div>
-  <div class="menu-hint">Press <kbd>S</kbd> for Settings</div>
-  <div class="menu-hint">Press <kbd>H</kbd> for Hall of Fame</div>
-  <div class="menu-hint">Press <kbd>I</kbd> for Instructions</div>
+  <button class="menu-btn" id="btn-start">START GAME</button>
+  <div class="menu-hint" style="margin:2px 0 8px">Press <kbd>ENTER</kbd> or click</div>
+  <button class="menu-btn secondary" id="btn-main-settings">SETTINGS</button>
+  <button class="menu-btn secondary" id="btn-main-hof">HALL OF FAME</button>
+  <button class="menu-btn secondary" id="btn-main-instructions">INSTRUCTIONS</button>
 </div>
 <div id="pause-menu" class="overlay">
   <div class="panel">
@@ -126,11 +127,19 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
     <div class="panel-text">Avoid walls — <span style="color:#4a7c3f">green beds</span> are deadly.</div>
     <div class="panel-text" style="margin-top:8px;color:#81c784">ARROWS / WASD — Move</div>
     <div class="panel-text" style="color:#81c784">ESC — Pause</div>
-    <div class="panel-text" style="margin-top:8px;color:#a5d6a7">Eat 3 rabbits to level up!</div>
+    <div class="panel-text" style="margin-top:8px;color:#a5d6a7">Eat rabbits to level up (more each 5 levels).</div>
     <div class="panel-text" style="color:#a5d6a7">New levels add walls &amp; maze patterns.</div>
     <div class="panel-text" style="margin-top:8px;color:#ffab00">3 lives — lose one on death.</div>
     <div class="panel-text" style="color:#ffab00">High scores saved locally.</div>
-    <div class="panel-text" style="margin-top:8px;color:#ce93d8">Bonuses appear! Unlock every 3 levels.</div>
+    <div class="panel-text" style="margin-top:8px;color:#ce93d8;font-weight:bold">BONUSES (every 3 levels):</div>
+    <div class="panel-text" style="font-size:12px;color:#b39ddb">❄ SLOW — Snake speed halved (10s)</div>
+    <div class="panel-text" style="font-size:12px;color:#b39ddb">⚡ SPEED — Snake speed doubled (10s)</div>
+    <div class="panel-text" style="font-size:12px;color:#b39ddb">💀 KILL — Kill one random rabbit</div>
+    <div class="panel-text" style="font-size:12px;color:#b39ddb">❤ EXTRA LIFE — +1 life</div>
+    <div class="panel-text" style="font-size:12px;color:#b39ddb">✂ CHOP — Shorten snake by 1/3</div>
+    <div class="panel-text" style="font-size:12px;color:#b39ddb">👻 GHOST — Pass through beds (10s)</div>
+    <div class="panel-text" style="font-size:12px;color:#b39ddb">🔥 RAGE — Rabbits attack head (10s)</div>
+    <div class="panel-text" style="font-size:12px;color:#b39ddb">🔄 WARP — Random teleport on edge (10s)</div>
     <button class="menu-btn" id="btn-instructions-back" style="margin-top:12px">BACK</button>
   </div>
 </div>
@@ -282,6 +291,29 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
     const sv = zzfxV; zzfxV = sfxVol * 0.3; zzfx(...p); zzfxV = sv;
   }
 
+  let floatingTexts = [];
+
+  function addFloatingText(cx, cy, text, color, duration) {
+    floatingTexts.push({ x: cx, y: cy, text: text, color: color || "#ffffff", life: duration || 1500, maxLife: duration || 1500, vy: -1.5 });
+  }
+
+  function updateFloatingTexts(dt) {
+    for (let i = floatingTexts.length - 1; i >= 0; i--) {
+      const ft = floatingTexts[i]; ft.life -= dt; ft.y += ft.vy * (dt / 16);
+      if (ft.life <= 0) floatingTexts.splice(i, 1);
+    }
+  }
+
+  function drawFloatingTexts() {
+    for (const ft of floatingTexts) {
+      const alpha = Math.max(0, ft.life / ft.maxLife);
+      ctx.globalAlpha = alpha; ctx.fillStyle = ft.color;
+      ctx.font = "bold 16px monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(ft.text, ft.x, ft.y);
+    }
+    ctx.globalAlpha = 1;
+  }
+
   const BGM_MELODY = [
     [523,.4],[659,.2],[784,.2],[659,.4],[784,.2],[1047,.6],
     [784,.4],[659,.2],[523,.2],[587,.4],[659,.2],[523,.6],
@@ -305,7 +337,8 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
   function setSFXVolume(v) { sfxVol = v / 100; }
 
   // ---------- Const ----------
-  const COLS = 30, ROWS = 20, CELL = 30, BASE_TICK_MS = 500, RABBITS_PER_LEVEL = 3;
+  const COLS = 30, ROWS = 20, CELL = 30, BASE_TICK_MS = 500;
+  function rabbitsPerLevel(level) { return 3 + Math.floor((level - 1) / 5); }
   function currentTickMs(level, speedMul) { return Math.max(75, Math.floor(BASE_TICK_MS / (1 + (level - 1) * 0.25) * (speedMul || 1))); }
   const FLOOR = 0, BED = 1;
 
@@ -315,15 +348,15 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
 
   // ---------- Bonus System ----------
   const BONUS_TYPES = {
-    slow_down:     { name: "SLOW",  icon: "\u2744", color: "#4fc3f7", duration: 8000,   unlockLvl: 1, instant: false },
-    speed_up:      { name: "SPEED", icon: "\u26a1", color: "#ffd54f", duration: 8000,   unlockLvl: 1, instant: false },
-    plus_score:    { name: "+PTS",  icon: "\u2605", color: "#ff8f00", duration: 0,      unlockLvl: 1, instant: true },
-    kill_rabbit:   { name: "KILL",  icon: "\ud83d\udc80", color: "#e53935", duration: 0, unlockLvl: 4, instant: true },
-    extra_life:    { name: "+LIFE", icon: "\ud83d\udc96", color: "#ec407a", duration: 0, unlockLvl: 4, instant: true },
-    shorten_python:{ name: "CHOP",  icon: "\u2702", color: "#9ccc65", duration: 0,      unlockLvl: 4, instant: true },
-    pass_through:  { name: "GHOST", icon: "\ud83d\udc7b", color: "#ce93d8", duration: 10000, unlockLvl: 7, instant: false },
-    rage:          { name: "RAGE",  icon: "\ud83d\udd25", color: "#ff7043", duration: 7000,  unlockLvl: 7, instant: false },
-    wall_reverse:  { name: "SWAP",  icon: "\ud83d\udd04", color: "#4dd0e1", duration: 10000, unlockLvl: 7, instant: false },
+    slow_down:     { name: "SLOW",  icon: "\u2744", color: "#4fc3f7", duration: 10000, unlockLvl: 3, instant: false },
+    speed_up:      { name: "SPEED", icon: "\u26a1", color: "#ffd54f", duration: 10000, unlockLvl: 6, instant: false },
+    kill_rabbit:   { name: "KILL",  icon: "\ud83d\udc80", color: "#e53935", duration: 0, unlockLvl: 9, instant: true },
+    extra_life:    { name: "+LIFE", icon: "\u2764", color: "#ec407a", duration: 0, unlockLvl: 12, instant: true },
+    shorten_python:{ name: "CHOP",  icon: "\u2702", color: "#9ccc65", duration: 0,      unlockLvl: 15, instant: true },
+    pass_through:  { name: "GHOST", icon: "\ud83d\udc7b", color: "#ce93d8", duration: 10000, unlockLvl: 18, instant: false },
+    rage:          { name: "RAGE",  icon: "\ud83d\udd25", color: "#ff7043", duration: 10000, unlockLvl: 21, instant: false },
+    wall_reverse:  { name: "WARP",  icon: "\ud83d\udd04", color: "#4dd0e1", duration: 10000, unlockLvl: 24, instant: false },
+    freeze:        { name: "FREEZE",icon: "\u2744\ufe0f", color: "#80deea", duration: 6000,  unlockLvl: 27, instant: false },
   };
   const BONUS_SPAWN_INTERVAL = 10000;
   const BONUS_MAX_ON_FIELD = 3;
@@ -383,10 +416,6 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
     if (!def) return;
     if (def.instant) {
       switch (type) {
-        case "plus_score":
-          state.score += 50;
-          emitParticles(state.snake[0].x * CELL + CELL / 2, state.snake[0].y * CELL + CELL / 2, "#ffd54f", 10, 3, 500);
-          break;
         case "kill_rabbit":
           for (const r of state.rabbits) {
             const [bx, by] = r.bedKey.split(",").map(Number);
@@ -406,11 +435,17 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
           doShake(3);
           break;
       }
+      // Show floating text for instant bonus
+      const hd = state.snake[0];
+      if (hd) { addFloatingText(hd.x * CELL + CELL / 2, hd.y * CELL - 10, def.icon + " " + def.name + "!", def.color, 1500); }
       return;
     }
     if (type === "speed_up" && state.activeBuffs.slow_down) removeBuff(state, "slow_down");
     if (type === "slow_down" && state.activeBuffs.speed_up) removeBuff(state, "speed_up");
     state.activeBuffs[type] = { remaining: def.duration, duration: def.duration };
+    // Show floating text for timed bonus
+    const hd2 = state.snake[0];
+    if (hd2) { addFloatingText(hd2.x * CELL + CELL / 2, hd2.y * CELL - 10, def.icon + " " + def.name + "!", def.color, 1500); }
   }
 
   function removeBuff(state, type) {
@@ -586,7 +621,26 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
     const t = Math.floor(Math.random() * 3);
     if (t === 0) { for (let i = 0; i < ROWS*2; i += 3) for (let r = 0; r < ROWS; r++) { const c = i-r; if (c>=0&&c<COLS) grid[r][c] = BED; } }
     else if (t === 1) { for (let r = 0; r < ROWS; r += 5) for (let c = 0; c < COLS; c += 6) for (let dr = 0; dr < 3; dr++) for (let dc = 0; dc < 3; dc++) { const x=c+dc,y=r+dr; if(x<COLS&&y<ROWS)grid[y][x]=BED; } }
-    else { for (let l=0;l<4;l++){const o=l*2+2;if(o>=Math.min(COLS,ROWS)/2)break;for(let x=o;x<COLS-o;x++)grid[o][x]=BED;for(let x=o;x<COLS-o;x++)grid[ROWS-1-o][x]=BED;for(let y=o+1;y<ROWS-1-o;y++)grid[y][o]=BED;for(let y=o+1;y<ROWS-1-o;y++)grid[y][COLS-1-o]=BED;} }
+    else {
+      for (let l = 0; l < 4; l++) {
+        const o = l * 2 + 2;
+        if (o >= Math.min(COLS, ROWS) / 2) break;
+        const g = new Set();
+        for (let s = 0; s < 2 + Math.floor(Math.random() * 2); s++) {
+          const side = Math.floor(Math.random() * 4);
+          let gx, gy;
+          if (side === 0) { gy = o; gx = o + Math.floor(Math.random() * (COLS - o * 2)); }
+          else if (side === 1) { gy = ROWS - 1 - o; gx = o + Math.floor(Math.random() * (COLS - o * 2)); }
+          else if (side === 2) { gx = o; gy = o + 1 + Math.floor(Math.random() * (ROWS - o * 2 - 2)); }
+          else { gx = COLS - 1 - o; gy = o + 1 + Math.floor(Math.random() * (ROWS - o * 2 - 2)); }
+          g.add(gx + "," + gy);
+        }
+        for (let x = o; x < COLS - o; x++) if (!g.has(x + "," + o)) grid[o][x] = BED;
+        for (let x = o; x < COLS - o; x++) if (!g.has(x + "," + (ROWS-1-o))) grid[ROWS-1-o][x] = BED;
+        for (let y = o+1; y < ROWS-1-o; y++) if (!g.has(o + "," + y)) grid[y][o] = BED;
+        for (let y = o+1; y < ROWS-1-o; y++) if (!g.has((COLS-1-o) + "," + y)) grid[y][COLS-1-o] = BED;
+      }
+    }
     return grid;
   }
   function shuffle(arr) { for (let i = arr.length-1; i>0; i--) { const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
@@ -646,7 +700,7 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
       highScore:Math.max(0,parseInt(localStorage.getItem(LS_KEYS.hi)||"0")),
       alive:false,paused:false,accumulator:0,spawnTimer:0,eatenCarrots:new Set(),
       lives:3,lastTimestamp:0,
-      bonusesOnField:[],activeBuffs:{},bonusSpawnTimer:0};
+      bonusesOnField:[],activeBuffs:{},bonusSpawnTimer:0,levelScore:0,levelTransition:false,levelTransitionTimer:0};
   }
 
   function restartLevel(){
@@ -655,6 +709,7 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
     game.dir={dx:0,dy:0};game.nextDir={dx:0,dy:0};game.growPending=0;
     game.accumulator=0;game.lastTimestamp=0;game.rabbits=[];game.eatenCarrots=new Set();
     game.alive=true;game.paused=false;hideAllOverlays();
+    game.bonusesOnField=[];game.activeBuffs={};game.bonusSpawnTimer=0;
     spawnInitialRabbits(game);buildBedGraphFromMaze(m);
     stopBGM();setTimeout(startBGM,100);
   }
@@ -738,17 +793,19 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
     for(let i=state.rabbits.length-1;i>=0;i--){const r=state.rabbits[i];
       if(!r.jumping){const[bx,by]=r.bedKey.split(",").map(Number);const dist=Math.abs(nh.x-bx)+Math.abs(nh.y-by);
         let ed=r.isFloorRabbit?0:1;if(dist<=ed){emitParticles(bx*CELL+CELL/2,by*CELL+CELL/2,"#ffffff",12,3,500);emitParticles(bx*CELL+CELL/2,by*CELL+CELL/2,"#f7931e",6,2,400);doShake(4);state.rabbits.splice(i,1);state.score+=10;state.rabbitsEaten++;state.levelRabbitsEaten++;playSFX('eat');state.growPending++;ate=true;
-          if(state.rabbitsEaten%RABBITS_PER_LEVEL===0&&state.level<10)advanceLevel(state);break;}}}
+          if(state.levelRabbitsEaten>=rabbitsPerLevel(state.level)&&state.level<10)advanceLevel(state);break;}}}
     if(state.growPending>0)state.growPending--;else state.snake.pop();
     checkBonusCollisions(state);
     const maxRabbits = maxRabbitsForLevel(state.level);
     if(ate&&state.rabbits.length<maxRabbits)state.spawnTimer=3000;return true;
   }
 
-  function advanceLevel(state){state.level++;state.levelRabbitsEaten=0;playSFX('levelUp');
+  function advanceLevel(state){state.levelScore = state.levelRabbitsEaten * 10;
+    state.level++;state.levelRabbitsEaten=0;playSFX('levelUp');
     const nm=generateLevel(state.level);state.maze=nm;const ss=findSafeSnakeStart(nm);
     state.snake=[{x:ss.x,y:ss.y},{x:ss.x-1,y:ss.y},{x:ss.x-2,y:ss.y}];state.dir={dx:0,dy:0};state.nextDir={dx:0,dy:0};
     state.growPending=0;state.accumulator=0;state.eatenCarrots=new Set();
+    state.bonusesOnField=[];state.activeBuffs={};state.bonusSpawnTimer=0;
     const newRabbitCount = maxRabbitsForLevel(state.level);
     for(let i=state.rabbits.length-1;i>=newRabbitCount;i--)state.rabbits.splice(i,1);
     for(let i=0;i<state.rabbits.length;i++)state.rabbits[i].isFloorRabbit=false;
@@ -766,17 +823,17 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
   // ---------- Input ----------
   const keyMap={ArrowUp:"UP",ArrowDown:"DOWN",ArrowLeft:"LEFT",ArrowRight:"RIGHT",w:"UP",W:"UP",s:"DOWN",S:"DOWN",a:"LEFT",A:"LEFT",d:"RIGHT",D:"RIGHT"};
   function handleKeyDown(e){
+    if((!game||!game.alive)&&document.getElementById("main-menu").classList.contains("visible")){
+      if(e.key==="Enter"||e.key===" "){e.preventDefault();initAudio();startGame();return;}}
+    if(!game)return;
+    if(!game.alive&&(e.key==="Enter"||e.key===" "||e.key==="Space")){
+      if(document.getElementById("game-over").classList.contains("visible")){
+        e.preventDefault();initAudio();startGame();return;}}
     if(e.key==="Escape"||e.key==="Esc"){e.preventDefault();
       if(uiFocus){if(document.getElementById("settings-menu").classList.contains("visible")||document.getElementById("hall-of-fame").classList.contains("visible")||document.getElementById("instructions").classList.contains("visible")){goBackFromOverlay();}else if(document.getElementById("pause-menu").classList.contains("visible")){resumeGame();}return;}
       if(!game||!game.alive)return;
       if(game.paused){resumeGame();}else{game.paused=true;stopBGM();showPauseMenu();}return;}
     if(uiFocus)return;
-    if((!game||!game.alive)&&document.getElementById("main-menu").classList.contains("visible")){
-      if(e.key==="Enter"||e.key===" "){e.preventDefault();initAudio();startGame();return;}
-      if(e.key==="s"||e.key==="S"){e.preventDefault();showSettings(false);return;}
-      if(e.key==="h"||e.key==="H"){e.preventDefault();showHallOfFame(false);return;}
-      if(e.key==="i"||e.key==="I"){e.preventDefault();showInstructions(false);return;}return;}
-    if(!game)return;
     if(!game.alive&&(e.key==="Enter"||e.key===" "||e.key==="Space")){e.preventDefault();initAudio();startGame();return;}
     const dn=keyMap[e.key];if(dn){e.preventDefault();const d=DIRS[dn];if(game.nextDir.dx!==-d.dx||game.nextDir.dy!==-d.dy){game.nextDir=d;if(game.dir.dx===0&&game.dir.dy===0)game.dir={dx:d.dx,dy:d.dy};}}
   }
@@ -794,6 +851,10 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
   document.getElementById("btn-continue").addEventListener("click",function(){game.lives--;restartLevel();});
   document.getElementById("btn-continue-quit").addEventListener("click",function(){game.lives=0;fullGameOver();});
   document.getElementById("restart-btn").addEventListener("click",function(){initAudio();startGame();});
+  document.getElementById("btn-start").addEventListener("click",function(){initAudio();startGame();});
+  document.getElementById("btn-main-settings").addEventListener("click",function(){showSettings(false);});
+  document.getElementById("btn-main-hof").addEventListener("click",function(){showHallOfFame(false);});
+  document.getElementById("btn-main-instructions").addEventListener("click",function(){showInstructions(false);});
   canvas.addEventListener("click",function(){if(document.getElementById("main-menu").classList.contains("visible")){initAudio();startGame();}});
   document.getElementById("set-music-vol").addEventListener("input",function(){const v=parseInt(this.value);settings.musicVol=v;document.getElementById("val-music-vol").textContent=v;setMusicVolume(v);saveSettings(settings);});
   document.getElementById("set-sfx-vol").addEventListener("input",function(){const v=parseInt(this.value);settings.sfxVol=v;document.getElementById("val-sfx-vol").textContent=v;setSFXVolume(v);saveSettings(settings);});
@@ -809,17 +870,48 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
 
   function drawCarrot(cx,cy){animTime++;const sway=Math.sin(animTime*0.05+cx*0.1)*1.2;const rx=Math.floor(cx+sway),ry=Math.floor(cy);ctx.fillStyle="#f7931e";ctx.fillRect(rx-4,ry-4,8,14);ctx.fillRect(rx-3,ry+10,6,6);ctx.fillRect(rx-1,ry+16,2,3);ctx.fillStyle="#4caf50";ctx.fillRect(rx-5,ry-8,3,5);ctx.fillRect(rx+2,ry-8,3,5);ctx.fillRect(rx-1,ry-10,2,7);}
 
-  function drawHUD(){const sx=10,sy=6;ctx.fillStyle="rgba(0,0,0,0.55)";ctx.fillRect(sx-4,sy-4,270,50);ctx.strokeStyle="#8d6e4c";ctx.lineWidth=1;ctx.strokeRect(sx-4,sy-4,270,50);ctx.fillStyle="#a5d6a7";ctx.font="14px monospace";ctx.textBaseline="top";ctx.fillText("SCORE",sx,sy);ctx.fillStyle="#ffd54f";ctx.font="bold 24px monospace";ctx.fillText(String(game.score).padStart(4,"0"),sx,sy+16);ctx.fillStyle="#81c784";ctx.font="12px monospace";ctx.fillText("LVL "+game.level,sx+130,sy+2);ctx.fillStyle="#ffffff";ctx.font="12px monospace";ctx.fillText("EATEN "+game.levelRabbitsEaten+"/"+RABBITS_PER_LEVEL,sx+120,sy+20);const prog=game.levelRabbitsEaten/RABBITS_PER_LEVEL;ctx.fillStyle="rgba(255,255,255,0.15)";ctx.fillRect(sx+120,sy+32,96,8);ctx.fillStyle=prog>0?"#81c784":"rgba(255,255,255,0.1)";ctx.fillRect(sx+120,sy+32,Math.floor(96*prog),8);ctx.strokeStyle="rgba(255,255,255,0.3)";ctx.strokeRect(sx+120,sy+32,96,8);ctx.fillStyle="rgba(255,255,255,0.6)";ctx.font="10px monospace";ctx.fillText("BUNNY "+game.rabbits.length+"/"+maxRabbitsForLevel(game.level),sx+120,sy+46);ctx.fillStyle="rgba(255,255,255,0.5)";ctx.font="11px monospace";ctx.fillText("HI "+String(game.highScore).padStart(4,"0"),sx,sy+44);let hearts="";for(let i=0;i<game.lives;i++)hearts+="\u2665";ctx.fillStyle="#ff5252";ctx.font="14px monospace";ctx.fillText(hearts,sx+230,sy+2);}
+  function drawHUD(){const sx=10,sy=6;ctx.fillStyle="rgba(0,0,0,0.55)";ctx.fillRect(sx-4,sy-4,270,50);ctx.strokeStyle="#8d6e4c";ctx.lineWidth=1;ctx.strokeRect(sx-4,sy-4,270,50);ctx.fillStyle="#a5d6a7";ctx.font="14px monospace";ctx.textBaseline="top";ctx.fillText("SCORE",sx,sy);ctx.fillStyle="#ffd54f";ctx.font="bold 24px monospace";ctx.fillText(String(game.score).padStart(4,"0"),sx,sy+16);ctx.fillStyle="#81c784";ctx.font="12px monospace";ctx.fillText("LVL "+game.level,sx+130,sy+2);ctx.fillStyle="#ffffff";ctx.font="12px monospace";ctx.fillText("EATEN "+game.levelRabbitsEaten+"/"+rabbitsPerLevel(game.level),sx+120,sy+20);const prog=game.levelRabbitsEaten/rabbitsPerLevel(game.level);ctx.fillStyle="rgba(255,255,255,0.15)";ctx.fillRect(sx+120,sy+32,96,8);ctx.fillStyle=prog>0?"#81c784":"rgba(255,255,255,0.1)";ctx.fillRect(sx+120,sy+32,Math.floor(96*prog),8);ctx.strokeStyle="rgba(255,255,255,0.3)";ctx.strokeRect(sx+120,sy+32,96,8);ctx.fillStyle="rgba(255,255,255,0.6)";ctx.font="10px monospace";ctx.fillText("BUNNY "+game.rabbits.length+"/"+maxRabbitsForLevel(game.level),sx+120,sy+46);ctx.fillStyle="rgba(255,255,255,0.5)";ctx.font="11px monospace";ctx.fillText("HI "+String(game.highScore).padStart(4,"0"),sx,sy+44);let hearts="";for(let i=0;i<game.lives;i++)hearts+="\u2665";ctx.fillStyle="#ff5252";ctx.font="14px monospace";ctx.fillText(hearts,sx+230,sy+2);}
 
   // ---------- Game loop ----------
+  function drawLevelTransition() {
+    if (!game || !game.levelTransition) return;
+    const p = game.levelTransitionTimer / 2500;
+    const a = Math.min(1, p > 0.8 ? (1 - p) * 5 : 1);
+    ctx.fillStyle = "rgba(0,0,0," + (0.6 * a) + ")";
+    ctx.fillRect(0, 0, COLS * CELL, ROWS * CELL);
+    ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.globalAlpha = a;
+    ctx.fillStyle = "#4caf50"; ctx.font = "bold 48px monospace";
+    ctx.fillText("LVL " + game.level, COLS * CELL / 2, ROWS * CELL / 2 - 60);
+    ctx.textBaseline = "top";
+    ctx.fillStyle = "#a5d6a7"; ctx.font = "16px monospace";
+    ctx.fillText("Level score: +" + game.levelScore + " pts", COLS * CELL / 2, ROWS * CELL / 2 - 20);
+    ctx.fillStyle = "#ffd54f"; ctx.font = "18px monospace";
+    ctx.fillText("Total: " + game.score, COLS * CELL / 2, ROWS * CELL / 2 + 10);
+    let h = ""; for (let i = 0; i < game.lives; i++) h += "\u2665 ";
+    ctx.fillStyle = "#ff5252"; ctx.font = "14px monospace";
+    ctx.fillText("Lives: " + h, COLS * CELL / 2, ROWS * CELL / 2 + 40);
+    const nb = getNewBonusesAtLevel(game.level);
+    if (nb.length > 0) {
+      ctx.fillStyle = "#ce93d8"; ctx.font = "bold 16px monospace";
+      ctx.fillText("NEW BONUS!", COLS * CELL / 2, ROWS * CELL / 2 + 75);
+      ctx.font = "14px monospace";
+      for (let i = 0; i < nb.length; i++) {
+        const d = BONUS_TYPES[nb[i]]; ctx.fillStyle = d.color;
+        ctx.fillText(d.icon + " " + d.name, COLS * CELL / 2, ROWS * CELL / 2 + 95 + i * 20);
+      }
+    }
+    ctx.globalAlpha = 1; ctx.textBaseline = "alphabetic";
+  }
+
   let rafHandle = null;
   function gameLoop(timestamp){
     if(!game){rafHandle=requestAnimationFrame(gameLoop);return;}
+    if(game.levelTransition){render();game.levelTransitionTimer-=16;if(game.levelTransitionTimer<=0){game.levelTransition=false;game.lastTimestamp=0;}rafHandle=requestAnimationFrame(gameLoop);return;}
     if(!game.alive){render();rafHandle=requestAnimationFrame(gameLoop);return;}
     if(game.paused){render();rafHandle=requestAnimationFrame(gameLoop);return;}
     if(game.lastTimestamp===0)game.lastTimestamp=timestamp;
     let dt=timestamp-game.lastTimestamp;game.lastTimestamp=timestamp;if(dt>200)dt=200;
-    game.accumulator+=dt;updateParticles(dt);updateShake();
+    game.accumulator+=dt;updateParticles(dt);updateFloatingTexts(dt);updateShake();
 
     let speedMul = 1;
     if (game.activeBuffs.speed_up) speedMul = 0.7;
@@ -836,13 +928,13 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
     while(game.accumulator>=tickMs){game.accumulator-=tickMs;
       const maxR = maxRabbitsForLevel(game.level);
       if(game.rabbits.length < maxR){game.spawnTimer-=tickMs;if(game.spawnTimer<=0){respawnRabbit(game);game.spawnTimer=game.rabbits.length<maxR?3000:0;}}
-      updateRabbits(game,tickMs);
+      if (!game.activeBuffs.freeze) updateRabbits(game,tickMs);
       if(!updateSnake(game)){handleDeath();return;}
     }
     render();rafHandle=requestAnimationFrame(gameLoop);
   }
 
-  function render(){ctx.save();const off=shakeOffset();if(off.x||off.y)ctx.translate(off.x,off.y);ctx.fillStyle="#1b3a0f";ctx.fillRect(0,0,canvas.width,canvas.height);drawMaze();if(game){drawBonuses();const sk=currentSkin();for(const r of game.rabbits)sk.drawRabbit(r);sk.drawSnake(game.snake,game.dir,animTime);drawHUD();drawBuffHUD();drawParticles();}ctx.restore();}
+  function render(){ctx.save();const off=shakeOffset();if(off.x||off.y)ctx.translate(off.x,off.y);ctx.fillStyle="#1b3a0f";ctx.fillRect(0,0,canvas.width,canvas.height);drawMaze();if(game){drawBonuses();drawFloatingTexts();const sk=currentSkin();for(const r of game.rabbits)sk.drawRabbit(r);sk.drawSnake(game.snake,game.dir,animTime);drawHUD();drawBuffHUD();drawParticles();drawLevelTransition();}ctx.restore();}
 
   function handleDeath(){if(!game)return;game.alive=false;stopBGM();playSFX('death');
     if(game.score>game.highScore){game.highScore=game.score;try{localStorage.setItem(LS_KEYS.hi,String(game.highScore));}catch(e){}}
@@ -853,7 +945,7 @@ canvas{display:block;width:900px;height:600px;image-rendering:pixelated;image-re
 
   function fullGameOver(){const fs=document.getElementById("final-score"),fl=document.getElementById("final-level"),hs=document.getElementById("high-score"),nhm=document.getElementById("new-hs-msg"),her=document.getElementById("hof-entry-row");fs.textContent=game.score;fl.textContent=game.level;hs.textContent=game.highScore;const isNH=isHighScore(game.score);if(isNH){nhm.style.display="block";her.style.display="flex";document.getElementById("hof-name-input").value="";document.getElementById("hof-name-input").focus();}else{nhm.style.display="none";her.style.display="none";}showOverlay("game-over");}
 
-  function startGame(){if(game&&game.alive)return;hideAllOverlays();game=newGame();game.lives=3;buildBedGraphFromMaze(game.maze);spawnInitialRabbits(game);game.alive=true;game.lastTimestamp=0;game.paused=false;game.bonusesOnField=[];game.activeBuffs={};game.bonusSpawnTimer=0;initAudio();stopBGM();setTimeout(startBGM,100);game.accumulator=0;animTime=0;particles=[];if(!rafHandle)rafHandle=requestAnimationFrame(gameLoop);}
+  function startGame(){if(game&&game.alive)return;hideAllOverlays();game=newGame();game.lives=3;buildBedGraphFromMaze(game.maze);spawnInitialRabbits(game);game.alive=true;game.lastTimestamp=0;game.paused=false;game.bonusesOnField=[];game.activeBuffs={};game.bonusSpawnTimer=0;initAudio();stopBGM();setTimeout(startBGM,100);game.accumulator=0;animTime=0;particles=[];floatingTexts=[];if(!rafHandle)rafHandle=requestAnimationFrame(gameLoop);}
 
   // ---------- Auto-pause ----------
   window.addEventListener("blur",function(){if(game&&game.alive&&!game.paused){game.paused=true;stopBGM();showPauseMenu();}});
